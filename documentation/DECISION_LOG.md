@@ -56,3 +56,14 @@
 - **Context:** Local persistence must be fast, resilient against corruption, offline-first, and immune to native C++ NDK / 16KB page alignment breakages on modern Android (API 37+).
 - **Decision:** Utilize atomic double-buffered JSON file storage (`.tmp` write $\rightarrow$ file replace) combined with HMAC-SHA256 signature verification and automated `.bak` fallback, paired with `SharedPreferences` for fast configuration access.
 - **Consequences:** Completely pure Dart runtime execution with zero native binary compilation risk, resilient against device crashes, and directly aligned with cloud document synchronization in Phase 10.
+
+---
+
+## ADR-006: Android NDK Management & Desktop Platform Configuration
+- **Date:** 2026-11-15
+- **Status:** Approved
+- **Context:** Flutter build required NDK 28.2.13676358 during Android APK assembly, and Windows symlink permissions required elevation for unused Windows desktop plugin builds.
+- **Decision:**
+  1. Disabled Windows desktop target via `flutter config --no-enable-windows-desktop` to ensure clean, unelevated `flutter pub get` executions for mobile development.
+  2. Installed the exact required NDK package `ndk/28.2.13676358` via the official Android CLI tool (`android sdk install ndk/28.2.13676358`).
+- **Consequences:** Full Android build pipeline successfully produces debug APKs without tooling conflicts.
