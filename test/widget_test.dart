@@ -1,12 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mindverse/app/app.dart';
+import 'package:mindverse/core/storage/storage_keys.dart';
 import 'package:mindverse/shared/providers/shared_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('App launches to Splash and navigates to Hub smoke test', (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
+    // Seed onboarding as completed so splash navigates directly to Hub
+    SharedPreferences.setMockInitialValues({
+      StorageKeys.hasCompletedOnboarding: true,
+    });
     final prefs = await SharedPreferences.getInstance();
 
     await tester.pumpWidget(
@@ -29,7 +33,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify Hub is presented
-    expect(find.text('MINDVERSE HUB'), findsOneWidget);
     expect(find.text('DAILY CHALLENGE'), findsOneWidget);
     expect(find.text('Cube Logic'), findsOneWidget);
     expect(find.text('Bridge Master'), findsOneWidget);

@@ -3,6 +3,7 @@ class RoutePaths {
   RoutePaths._();
 
   static const String splash = '/';
+  static const String onboarding = '/onboarding';
   static const String hub = '/hub';
   static const String gameDetail = '/game/:gameId';
   static const String levelSelect = '/game/:gameId/levels';

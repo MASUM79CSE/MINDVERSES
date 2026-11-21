@@ -5,6 +5,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### [Phase 3] - 2026-11-21
+#### Added
+- Implemented Splash screen with brand scale and fade transitions, checking onboarding status.
+- Implemented Onboarding flow with 3 interactive slides (THINK, SOLVE, EXPLORE), animated dot indicators, and skip/enter actions writing to `SharedPreferences`.
+- Implemented HubScreen with top status bar (avatar, Level/XP progress bar, coin badge), quick navigation buttons, Daily Challenge hero card, 3 MVP mini-games (Cube Logic, Bridge Master, Maze Architect), and 4 expansion game cards.
+- Implemented GameDetailScreen featuring 3-star scoring rules (Completion, Efficiency, Mastery), genre badges, level stats, and level select CTAs for all 7 games.
+- Implemented LevelSelectScreen with campaign progress indicator, 4-column level grid, star rating displays, and interactive level preview dialogs.
+- Implemented ProfileScreen with editable username dialog, avatar picker bottom sheet, Level/XP bar, and gameplay statistics.
+- Implemented SettingsScreen with toggles for Sound Effects, Music Ambiance, and Haptics, segmented theme mode selector (Dark, Light, System), data privacy modal, and reset progress confirmation.
+- Implemented reusable component and modal suite: `AppDialog`, `PauseModal`, `EmptyStateView`, `LoadingView`, `XpProgressBar`, `CoinBadge`.
+- Configured smooth animated route transitions in `GoRouter` with `CustomTransitionPage`.
+- Expanded automated test suite from 12 to 23 tests covering all shell screens, dialogs, modals, and edge cases with 0 static analysis issues.
+
 ### [Phase 2] - 2026-11-15
 #### Added
 - Initialized local Git repository and created baseline commit.

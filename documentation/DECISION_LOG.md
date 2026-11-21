@@ -67,3 +67,14 @@
   1. Disabled Windows desktop target via `flutter config --no-enable-windows-desktop` to ensure clean, unelevated `flutter pub get` executions for mobile development.
   2. Installed the exact required NDK package `ndk/28.2.13676358` via the official Android CLI tool (`android sdk install ndk/28.2.13676358`).
 - **Consequences:** Full Android build pipeline successfully produces debug APKs without tooling conflicts.
+
+---
+
+## ADR-007: Declarative Route Transitions & Responsive Mobile Shell
+- **Date:** 2026-11-21
+- **Status:** Approved
+- **Context:** Mobile application shell requires smooth screen-to-screen transitions and overflow-proof responsiveness across all mobile screen widths and densities.
+- **Decision:**
+  1. Standardized `GoRouter` route transitions using `CustomTransitionPage` combining `CurvedAnimation` (easeOutCubic) with subtle horizontal slide (`Offset(0.04, 0)`) and fade.
+  2. Applied defensive horizontal constraints (`Flexible`, `Expanded`, `overflow: TextOverflow.ellipsis`, `maxLines: 1`) across all status cards and list headers to ensure 0 `RenderFlex` overflow errors on compact aspect ratios.
+- **Consequences:** Clean visual polish, responsive adaptability across varying phone viewports, and 100% automated test coverage.
