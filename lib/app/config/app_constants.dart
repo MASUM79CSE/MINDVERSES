@@ -10,6 +10,10 @@ class AppConstants {
   static const String gameCubeLogic = 'cube_logic';
   static const String gameBridgeMaster = 'bridge_master';
   static const String gameMazeArchitect = 'maze_architect';
+  static const String gamePatternMatrix = 'pattern_matrix';
+  static const String gameGravityOrb = 'gravity_orb';
+  static const String gameQuantumLock = 'quantum_lock';
+  static const String gameChronoShift = 'chrono_shift';
   static const String gameGearTheory = 'gear_theory';
   static const String gameTinyKingdom = 'tiny_kingdom';
   static const String gamePerspective = 'perspective';

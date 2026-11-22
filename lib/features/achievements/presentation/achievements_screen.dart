@@ -1,44 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_typography.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../shared/providers/shared_providers.dart';
 
-/// Screen listing unlockable player achievements.
-class AchievementsScreen extends StatelessWidget {
+/// Screen listing unlockable player achievements wired to AchievementRepository.
+class AchievementsScreen extends ConsumerWidget {
   const AchievementsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final achievementsAsync = ref.watch(achievementsListProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('ACHIEVEMENTS'),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: const [
-            _AchievementTile(
-              title: 'First Victory',
-              description: 'Solve your very first puzzle level.',
-              isUnlocked: false,
-              rewardCoins: 25,
-            ),
-            SizedBox(height: 12),
-            _AchievementTile(
-              title: 'Perfect Solver',
-              description: 'Earn 3 stars on any single level.',
-              isUnlocked: false,
-              rewardCoins: 50,
-            ),
-            SizedBox(height: 12),
-            _AchievementTile(
-              title: 'Daily Explorer',
-              description: 'Complete your first daily challenge.',
-              isUnlocked: false,
-              rewardCoins: 100,
-            ),
-          ],
+        child: achievementsAsync.when(
+          data: (achievementsMap) {
+            final list = achievementsMap.values.toList();
+            return ListView.separated(
+              padding: const EdgeInsets.all(20),
+              itemCount: list.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final achievement = list[index];
+                return _AchievementTile(
+                  title: achievement.title,
+                  description: achievement.description,
+                  isUnlocked: achievement.isUnlocked,
+                  rewardCoins: achievement.rewardCoins,
+                  currentProgress: achievement.currentProgress,
+                  targetProgress: achievement.targetProgress,
+                );
+              },
+            );
+          },
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+          error: (err, _) => Center(
+            child: Text('Error loading achievements: $err', style: AppTypography.bodyMedium),
+          ),
         ),
       ),
     );
@@ -50,12 +56,16 @@ class _AchievementTile extends StatelessWidget {
   final String description;
   final bool isUnlocked;
   final int rewardCoins;
+  final int currentProgress;
+  final int targetProgress;
 
   const _AchievementTile({
     required this.title,
     required this.description,
     required this.isUnlocked,
     required this.rewardCoins,
+    required this.currentProgress,
+    required this.targetProgress,
   });
 
   @override
@@ -83,6 +93,13 @@ class _AchievementTile extends StatelessWidget {
                 Text(title, style: AppTypography.titleMedium),
                 const SizedBox(height: 2),
                 Text(description, style: AppTypography.bodyMedium),
+                if (!isUnlocked && targetProgress > 1) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Progress: $currentProgress / $targetProgress',
+                    style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
+                  ),
+                ],
               ],
             ),
           ),

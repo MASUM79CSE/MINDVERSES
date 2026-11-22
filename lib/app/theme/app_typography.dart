@@ -1,4 +1,4 @@
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
 /// Typography hierarchy for MINDVERSE.
@@ -49,6 +49,14 @@ class AppTypography {
     height: 1.4,
   );
 
+  static const TextStyle bodySmall = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0.2,
+    color: AppColors.textSecondary,
+    height: 1.35,
+  );
+
   static const TextStyle labelLarge = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w700,
@@ -59,7 +67,14 @@ class AppTypography {
   static const TextStyle labelSmall = TextStyle(
     fontSize: 11,
     fontWeight: FontWeight.w600,
-    letterSpacing: 0.4,
-    color: AppColors.textMuted,
+    letterSpacing: 0.8,
+    color: AppColors.textSecondary,
+  );
+
+  static const TextStyle statValue = TextStyle(
+    fontSize: 28,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.5,
+    color: AppColors.primary,
   );
 }

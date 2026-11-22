@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../shared/providers/shared_providers.dart';
+import '../../../shared/services/daily_challenge_service.dart';
 
 /// Screen presenting the UTC-deterministic daily challenge puzzle.
-class DailyChallengeScreen extends StatelessWidget {
+class DailyChallengeScreen extends ConsumerWidget {
   const DailyChallengeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final challenge = DailyChallengeService.generateChallengeForDate(DateTime.now());
+    final profileAsync = ref.watch(playerProfileNotifierProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -34,30 +40,40 @@ class DailyChallengeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text('Today\'s Puzzle', style: AppTypography.displayMedium, textAlign: TextAlign.center),
+              Text(challenge.challengeTitle, style: AppTypography.displayMedium, textAlign: TextAlign.center),
               const SizedBox(height: 8),
-              const Text(
-                'Complete one unique puzzle every 24 hours to build your streak and earn bonus coins.',
+              Text(
+                challenge.challengeDescription,
                 style: AppTypography.bodyLarge,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              const AppCard(
+              AppCard(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     Column(
                       children: [
-                        Text('Day 1', style: AppTypography.titleLarge),
-                        SizedBox(height: 4),
-                        Text('Current Streak', style: AppTypography.labelSmall),
+                        Text(
+                          '${profileAsync.asData?.value.currentStreak ?? 0} Days',
+                          style: AppTypography.titleLarge,
+                        ),
+                        const SizedBox(height: 4),
+                        const Text('Current Streak', style: AppTypography.labelSmall),
                       ],
                     ),
                     Column(
                       children: [
-                        Text('+100', style: AppTypography.titleLarge),
-                        SizedBox(height: 4),
-                        Text('Reward Coins', style: AppTypography.labelSmall),
+                        Text('+${challenge.rewardCoins}', style: AppTypography.titleLarge),
+                        const SizedBox(height: 4),
+                        const Text('Reward Coins', style: AppTypography.labelSmall),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        Text('+${challenge.rewardXp}', style: AppTypography.titleLarge),
+                        const SizedBox(height: 4),
+                        const Text('Reward XP', style: AppTypography.labelSmall),
                       ],
                     ),
                   ],
@@ -70,9 +86,9 @@ class DailyChallengeScreen extends StatelessWidget {
                 variant: AppButtonVariant.secondary,
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Daily challenge logic activates in Phase 4'),
-                      duration: Duration(milliseconds: 1500),
+                    SnackBar(
+                      content: Text('Starting ${challenge.challengeTitle}... Level gameplay launches in Phase 5!'),
+                      duration: const Duration(milliseconds: 2000),
                     ),
                   );
                 },

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/config/app_constants.dart';
 import '../../../app/router/route_paths.dart';
@@ -8,55 +9,121 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/coin_badge.dart';
 import '../../../core/widgets/star_display.dart';
 import '../../../core/widgets/xp_progress_bar.dart';
+import '../../../shared/providers/shared_providers.dart';
+import '../../../shared/services/xp_service.dart';
 
-/// Central Game Hub showcasing all mini-games, player status bar, and daily challenges.
-class HubScreen extends StatelessWidget {
+/// Central Game Hub showcasing all mini-games, reactive player status bar, and daily challenges.
+class HubScreen extends ConsumerWidget {
   const HubScreen({super.key});
 
+  static const List<IconData> _avatarIcons = [
+    Icons.person_rounded,
+    Icons.psychology_rounded,
+    Icons.emoji_objects_rounded,
+    Icons.rocket_launch_rounded,
+    Icons.auto_awesome_rounded,
+    Icons.extension_rounded,
+  ];
+
+  IconData _resolveAvatar(String avatarId) {
+    final digits = avatarId.replaceAll(RegExp(r'[^0-9]'), '');
+    final index = digits.isEmpty ? 0 : (int.tryParse(digits) ?? 0);
+    return _avatarIcons[index % _avatarIcons.length];
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(playerProfileNotifierProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // Top Status Bar
+            // Top Status Bar (Reactive via Riverpod)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                child: Row(
-                  children: [
-                    // Avatar (Tappable to Profile)
-                    InkWell(
-                      onTap: () => context.push(RoutePaths.profile),
-                      borderRadius: BorderRadius.circular(24),
-                      child: Container(
+                child: profileAsync.when(
+                  data: (profile) {
+                    final xpMetrics = XpService.getLevelProgress(profile.totalXp);
+                    return Row(
+                      children: [
+                        // Avatar (Tappable to Profile)
+                        InkWell(
+                          onTap: () => context.push(RoutePaths.profile),
+                          borderRadius: BorderRadius.circular(24),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceElevated,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.primary, width: 2),
+                            ),
+                            child: Icon(_resolveAvatar(profile.avatarId), color: AppColors.primary, size: 24),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Player Level & XP
+                        Expanded(
+                          child: XpProgressBar(
+                            currentXp: xpMetrics.currentXpInLevel,
+                            nextLevelXp: xpMetrics.xpForNextLevel,
+                            playerLevel: profile.playerLevel,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Coins Badge
+                        CoinBadge(
+                          coins: profile.coinBalance,
+                          onTap: () => context.push(RoutePaths.profile),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const Row(
+                    children: [
+                      SizedBox(
                         width: 44,
                         height: 44,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceElevated,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.primary, width: 2),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: XpProgressBar(currentXp: 0, nextLevelXp: 150, playerLevel: 1),
+                      ),
+                      SizedBox(width: 12),
+                      CoinBadge(coins: AppConstants.startingCoins),
+                    ],
+                  ),
+                  error: (err, stack) => Row(
+                    children: [
+                      InkWell(
+                        onTap: () => context.push(RoutePaths.profile),
+                        borderRadius: BorderRadius.circular(24),
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceElevated,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.primary, width: 2),
+                          ),
+                          child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 24),
                         ),
-                        child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 24),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Player Level & XP
-                    const Expanded(
-                      child: XpProgressBar(
-                        currentXp: 0,
-                        nextLevelXp: 150,
-                        playerLevel: 1,
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: XpProgressBar(currentXp: 0, nextLevelXp: 150, playerLevel: 1),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Coins Badge
-                    CoinBadge(
-                      coins: AppConstants.startingCoins,
-                      onTap: () => context.push(RoutePaths.profile),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      CoinBadge(
+                        coins: AppConstants.startingCoins,
+                        onTap: () => context.push(RoutePaths.profile),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -113,207 +180,141 @@ class HubScreen extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                const Flexible(
-                                  child: Text(
-                                    'DAILY CHALLENGE',
-                                    style: AppTypography.labelSmall,
-                                    overflow: TextOverflow.ellipsis,
+                                const Text('DAILY CHALLENGE', style: AppTypography.labelSmall),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
+                                  child: Text('NEW', style: AppTypography.labelSmall.copyWith(color: AppColors.secondary, fontSize: 10)),
                                 ),
-                                const SizedBox(width: 6),
-                                const Icon(Icons.local_fire_department_rounded, size: 14, color: AppColors.secondary),
-                                Text('0', style: AppTypography.labelSmall.copyWith(color: AppColors.secondary)),
                               ],
                             ),
-                            const SizedBox(height: 3),
+                            const SizedBox(height: 4),
                             const Text(
-                              'Today\'s Challenge',
-                              style: AppTypography.titleMedium,
+                              'Solve today\'s puzzle to earn +100 Coins & keep your streak!',
+                              style: AppTypography.bodySmall,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.secondary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '+100',
-                          style: AppTypography.labelSmall.copyWith(
-                            color: AppColors.textInverse,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textSecondary, size: 16),
                     ],
                   ),
                 ),
               ),
             ),
 
-            // MVP Games Section Header
+            // Mini-Games Section Title
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 12),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible(
-                      child: Text(
-                        'MVP MINI-GAMES',
-                        style: AppTypography.titleLarge,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Text('50 Levels', style: AppTypography.labelSmall),
+                    Text('CHOOSE YOUR GAME', style: AppTypography.labelSmall),
+                    Spacer(),
+                    Text('7 Brain Modes', style: AppTypography.bodySmall),
                   ],
                 ),
               ),
             ),
 
-            // 3 MVP Mini-Games List
+            // 7 Mini-Games Grid / List
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // Game 1: Cube Logic
-                  _GameHubCard(
-                    title: 'Cube Logic',
-                    tagline: 'Simulated 3D Energy Conduit Puzzles',
-                    genre: 'Spatial Logic',
-                    icon: Icons.view_in_ar_rounded,
-                    accentColor: AppColors.primary,
-                    totalLevels: AppConstants.cubeLogicTotalLevels,
-                    completedLevels: 0,
-                    starsEarned: 0,
-                    isMvp: true,
-                    onTap: () => context.push(RoutePaths.gameDetailPath(AppConstants.gameCubeLogic)),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Game 2: Bridge Master
-                  _GameHubCard(
-                    title: 'Bridge Master',
-                    tagline: '2D Physics Structural Engineering',
-                    genre: 'Physics',
-                    icon: Icons.architecture_rounded,
-                    accentColor: AppColors.secondary,
-                    totalLevels: AppConstants.bridgeMasterTotalLevels,
-                    completedLevels: 0,
-                    starsEarned: 0,
-                    isMvp: true,
-                    onTap: () => context.push(RoutePaths.gameDetailPath(AppConstants.gameBridgeMaster)),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Game 3: Maze Architect
-                  _GameHubCard(
-                    title: 'Maze Architect',
-                    tagline: 'Dynamic Sliding Path Labyrinths',
-                    genre: 'Grid Strategy',
-                    icon: Icons.grid_view_rounded,
-                    accentColor: AppColors.energyActive,
-                    totalLevels: AppConstants.mazeArchitectTotalLevels,
-                    completedLevels: 0,
-                    starsEarned: 0,
-                    isMvp: true,
-                    onTap: () => context.push(RoutePaths.gameDetailPath(AppConstants.gameMazeArchitect)),
-                  ),
-                  const SizedBox(height: 24),
-                ]),
-              ),
-            ),
-
-            // Post-MVP Games Section Header
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 8, 20, 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'EXPANSION GAMES',
-                        style: AppTypography.titleLarge,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                delegate: SliverChildListDelegate(
+                  [
+                    const _GameHubCard(
+                      id: AppConstants.gameCubeLogic,
+                      title: 'Cube Logic',
+                      tagline: 'Connect 3D conduits in space',
+                      category: '3D Spatial Logic',
+                      accentColor: AppColors.gameCubeLogic,
+                      icon: Icons.view_in_ar_rounded,
+                      isAvailable: true,
+                      levelsCount: 20,
+                      earnedStars: 0,
                     ),
-                    SizedBox(width: 8),
-                    Text('Phase 9', style: AppTypography.labelSmall),
+                    const SizedBox(height: 14),
+                    const _GameHubCard(
+                      id: AppConstants.gameBridgeMaster,
+                      title: 'Bridge Master',
+                      tagline: 'Physics-driven truss construction',
+                      category: 'Structural Engineering',
+                      accentColor: AppColors.gameBridgeMaster,
+                      icon: Icons.architecture_rounded,
+                      isAvailable: true,
+                      levelsCount: 15,
+                      earnedStars: 0,
+                    ),
+                    const SizedBox(height: 14),
+                    const _GameHubCard(
+                      id: AppConstants.gameMazeArchitect,
+                      title: 'Maze Architect',
+                      tagline: 'Path navigation with sliding rules',
+                      category: 'Spatial Pathfinding',
+                      accentColor: AppColors.gameMazeArchitect,
+                      icon: Icons.grid_goldenratio_rounded,
+                      isAvailable: true,
+                      levelsCount: 15,
+                      earnedStars: 0,
+                    ),
+                    const SizedBox(height: 14),
+                    const _GameHubCard(
+                      id: AppConstants.gamePatternMatrix,
+                      title: 'Pattern Matrix',
+                      tagline: 'Algorithmic pattern completion',
+                      category: 'Raven\'s Matrices',
+                      accentColor: AppColors.gamePatternMatrix,
+                      icon: Icons.pattern_rounded,
+                      isAvailable: false,
+                      levelsCount: 10,
+                      earnedStars: 0,
+                    ),
+                    const SizedBox(height: 14),
+                    const _GameHubCard(
+                      id: AppConstants.gameGravityOrb,
+                      title: 'Gravity Orb',
+                      tagline: 'Momentum, gravity wells & ricochets',
+                      category: 'Physics Puzzle',
+                      accentColor: AppColors.gameGravityOrb,
+                      icon: Icons.blur_circular_rounded,
+                      isAvailable: false,
+                      levelsCount: 10,
+                      earnedStars: 0,
+                    ),
+                    const SizedBox(height: 14),
+                    const _GameHubCard(
+                      id: AppConstants.gameQuantumLock,
+                      title: 'Quantum Lock',
+                      tagline: 'Multi-layer deduction & binary state',
+                      category: 'Cryptic Deduction',
+                      accentColor: AppColors.gameQuantumLock,
+                      icon: Icons.lock_clock_rounded,
+                      isAvailable: false,
+                      levelsCount: 10,
+                      earnedStars: 0,
+                    ),
+                    const SizedBox(height: 14),
+                    const _GameHubCard(
+                      id: AppConstants.gameChronoShift,
+                      title: 'Chrono Shift',
+                      tagline: 'Temporal recording & dual puzzle state',
+                      category: 'Time Paradox Logic',
+                      accentColor: AppColors.gameChronoShift,
+                      icon: Icons.history_toggle_off_rounded,
+                      isAvailable: false,
+                      levelsCount: 10,
+                      earnedStars: 0,
+                    ),
+                    const SizedBox(height: 28),
                   ],
                 ),
-              ),
-            ),
-
-            // 4 Post-MVP Mini-Games List
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // Game 4: Gear Theory
-                  _GameHubCard(
-                    title: 'Gear Theory',
-                    tagline: 'Mechanical Rotation & Transmission Solvers',
-                    genre: 'Kinematics',
-                    icon: Icons.settings_suggest_rounded,
-                    accentColor: const Color(0xFF8B5CF6),
-                    totalLevels: 15,
-                    completedLevels: 0,
-                    starsEarned: 0,
-                    isMvp: false,
-                    onTap: () => context.push(RoutePaths.gameDetailPath(AppConstants.gameGearTheory)),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Game 5: Tiny Kingdom
-                  _GameHubCard(
-                    title: 'Tiny Kingdom',
-                    tagline: 'Tile-Based Adjacency Settlement Strategy',
-                    genre: 'Resource',
-                    icon: Icons.castle_rounded,
-                    accentColor: const Color(0xFFF97316),
-                    totalLevels: 15,
-                    completedLevels: 0,
-                    starsEarned: 0,
-                    isMvp: false,
-                    onTap: () => context.push(RoutePaths.gameDetailPath(AppConstants.gameTinyKingdom)),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Game 6: Perspective
-                  _GameHubCard(
-                    title: 'Perspective',
-                    tagline: 'Optical Parallax & Silhouette Alignment',
-                    genre: 'Optical',
-                    icon: Icons.remove_red_eye_rounded,
-                    accentColor: const Color(0xFFEC4899),
-                    totalLevels: 15,
-                    completedLevels: 0,
-                    starsEarned: 0,
-                    isMvp: false,
-                    onTap: () => context.push(RoutePaths.gameDetailPath(AppConstants.gamePerspective)),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Game 7: Memory Matrix
-                  _GameHubCard(
-                    title: 'Memory Matrix',
-                    tagline: 'Rhythmic Sequence & Spatial Recall',
-                    genre: 'Recall',
-                    icon: Icons.memory_rounded,
-                    accentColor: const Color(0xFF06B6D4),
-                    totalLevels: 15,
-                    completedLevels: 0,
-                    starsEarned: 0,
-                    isMvp: false,
-                    onTap: () => context.push(RoutePaths.gameDetailPath(AppConstants.gameMemoryMatrix)),
-                  ),
-                ]),
               ),
             ),
           ],
@@ -337,18 +338,19 @@ class _QuickActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       onTap: onTap,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(width: 6),
+          Icon(icon, size: 20, color: AppColors.primary),
+          const SizedBox(width: 8),
           Flexible(
             child: Text(
               label,
-              style: AppTypography.titleMedium.copyWith(fontSize: 13),
+              style: AppTypography.titleMedium.copyWith(fontSize: 14),
               overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
         ],
@@ -358,102 +360,137 @@ class _QuickActionButton extends StatelessWidget {
 }
 
 class _GameHubCard extends StatelessWidget {
+  final String id;
   final String title;
   final String tagline;
-  final String genre;
-  final IconData icon;
+  final String category;
   final Color accentColor;
-  final int totalLevels;
-  final int completedLevels;
-  final int starsEarned;
-  final bool isMvp;
-  final VoidCallback onTap;
+  final IconData icon;
+  final bool isAvailable;
+  final int levelsCount;
+  final int earnedStars;
 
   const _GameHubCard({
+    required this.id,
     required this.title,
     required this.tagline,
-    required this.genre,
-    required this.icon,
+    required this.category,
     required this.accentColor,
-    required this.totalLevels,
-    required this.completedLevels,
-    required this.starsEarned,
-    required this.isMvp,
-    required this.onTap,
+    required this.icon,
+    required this.isAvailable,
+    required this.levelsCount,
+    required this.earnedStars,
   });
 
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      onTap: onTap,
-      hasGlow: isMvp,
+      hasGlow: isAvailable,
       glowColor: accentColor,
+      onTap: () {
+        context.push('${RoutePaths.gameDetail}/$id');
+      },
       child: Row(
         children: [
+          // Game Icon Box
           Container(
-            width: 52,
-            height: 52,
+            width: 58,
+            height: 58,
             decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: accentColor.withValues(alpha: 0.35)),
+              color: accentColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: accentColor.withValues(alpha: isAvailable ? 0.6 : 0.2),
+                width: 1.5,
+              ),
             ),
-            child: Icon(icon, color: accentColor, size: 28),
+            child: Icon(
+              icon,
+              color: isAvailable ? accentColor : AppColors.textMuted,
+              size: 32,
+            ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
+
+          // Title & Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Flexible(
+                    Expanded(
                       child: Text(
                         title,
-                        style: AppTypography.titleMedium,
+                        style: AppTypography.titleLarge,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                    if (!isAvailable)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceElevated,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.borderSubtle),
+                        ),
+                        child: Text(
+                          'PHASE 2',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  category.toUpperCase(),
+                  style: AppTypography.labelSmall.copyWith(
+                    color: isAvailable ? accentColor : AppColors.textMuted,
+                    fontSize: 11,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  tagline,
+                  style: AppTypography.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+                const SizedBox(height: 8),
+
+                // Stars & Level Progress
+                Row(
+                  children: [
+                    StarDisplay(
+                      earnedStars: earnedStars > 0 ? 1 : 0,
+                      starSize: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        '$earnedStars / ${levelsCount * 3}',
+                        style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        genre,
-                        style: AppTypography.labelSmall.copyWith(color: accentColor, fontSize: 10),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  tagline,
-                  style: AppTypography.bodyMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
+                    const SizedBox(width: 8),
                     Text(
-                      isMvp ? '$completedLevels/$totalLevels Levels' : 'Phase 9 Preview',
-                      style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
+                      '$levelsCount Levels',
+                      style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
                     ),
-                    const SizedBox(width: 10),
-                    if (isMvp)
-                      StarDisplay(earnedStars: starsEarned > 0 ? 1 : 0, starSize: 13)
-                    else
-                      const Icon(Icons.hourglass_empty_rounded, size: 13, color: AppColors.textMuted),
                   ],
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
+          const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textSecondary),
         ],
       ),
     );

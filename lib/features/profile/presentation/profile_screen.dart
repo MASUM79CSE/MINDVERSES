@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../app/config/app_constants.dart';
 import '../../../app/router/route_paths.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/xp_progress_bar.dart';
+import '../../../shared/providers/shared_providers.dart';
+import '../../../shared/services/xp_service.dart';
 
 /// Player Profile screen with avatar customization, username editing, and gameplay stats.
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  String _username = 'Player1234';
-  int _selectedAvatarIndex = 0;
-
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   static const List<IconData> _availableAvatars = [
     Icons.person_rounded,
     Icons.psychology_rounded,
@@ -29,8 +28,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Icons.extension_rounded,
   ];
 
-  void _showEditUsernameDialog() {
-    final controller = TextEditingController(text: _username);
+  int _resolveAvatarIndex(String avatarId) {
+    final digits = avatarId.replaceAll(RegExp(r'[^0-9]'), '');
+    final index = digits.isEmpty ? 0 : (int.tryParse(digits) ?? 0);
+    return index % _availableAvatars.length;
+  }
+
+  void _showEditUsernameDialog(String currentUsername) {
+    final controller = TextEditingController(text: currentUsername);
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -57,7 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () {
               final newName = controller.text.trim();
               if (newName.isNotEmpty) {
-                setState(() => _username = newName);
+                ref.read(playerProfileNotifierProvider.notifier).updateUsername(newName);
               }
               Navigator.of(ctx).pop();
             },
@@ -68,7 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showAvatarPicker() {
+  void _showAvatarPicker(int selectedIndex) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.surfaceCard,
@@ -87,10 +92,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               spacing: 16,
               runSpacing: 16,
               children: List.generate(_availableAvatars.length, (index) {
-                final isSelected = index == _selectedAvatarIndex;
+                final isSelected = index == selectedIndex;
                 return InkWell(
                   onTap: () {
-                    setState(() => _selectedAvatarIndex = index);
+                    ref.read(playerProfileNotifierProvider.notifier).updateAvatar('avatar_$index');
                     Navigator.of(ctx).pop();
                   },
                   borderRadius: BorderRadius.circular(20),
@@ -123,6 +128,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final profileAsync = ref.watch(playerProfileNotifierProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -130,114 +137,135 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_rounded),
-            onPressed: _showEditUsernameDialog,
+            onPressed: () {
+              final username = profileAsync.asData?.value.username ?? 'Player1234';
+              _showEditUsernameDialog(username);
+            },
             tooltip: 'Edit Username',
           ),
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            // Avatar & Level Header
-            Center(
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  InkWell(
-                    onTap: _showAvatarPicker,
-                    borderRadius: BorderRadius.circular(50),
-                    child: Container(
-                      width: 96,
-                      height: 96,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceElevated,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.primary, width: 2.5),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x3300E5FF),
-                            blurRadius: 20,
-                            spreadRadius: 2,
+        child: profileAsync.when(
+          data: (profile) {
+            final avatarIdx = _resolveAvatarIndex(profile.avatarId);
+            final title = XpService.getLevelTitle(profile.playerLevel);
+            final xpMetrics = XpService.getLevelProgress(profile.totalXp);
+
+            return ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                // Avatar & Level Header
+                Center(
+                  child: Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      InkWell(
+                        key: const ValueKey('profile_avatar_tap'),
+                        onTap: () => _showAvatarPicker(avatarIdx),
+                        borderRadius: BorderRadius.circular(50),
+                        child: Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceElevated,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.primary, width: 2.5),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x3300E5FF),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                              ),
+                            ],
                           ),
-                        ],
+                          child: Icon(
+                            _availableAvatars[avatarIdx],
+                            size: 56,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ),
-                      child: Icon(
-                        _availableAvatars[_selectedAvatarIndex],
-                        size: 56,
-                        color: AppColors.primary,
+                      GestureDetector(
+                        onTap: () => _showAvatarPicker(avatarIdx),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: AppColors.secondary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.camera_alt_rounded, size: 14, color: AppColors.textInverse),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: AppColors.secondary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.camera_alt_rounded, size: 14, color: AppColors.textInverse),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(_username, style: AppTypography.displayMedium, textAlign: TextAlign.center),
-            const SizedBox(height: 4),
-            const Text('Novice Thinker • Level 1', style: AppTypography.titleMedium, textAlign: TextAlign.center),
-            const SizedBox(height: 18),
-
-            // XP Progress Card
-            const AppCard(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: XpProgressBar(
-                  currentXp: 0,
-                  nextLevelXp: 150,
-                  playerLevel: 1,
-                  height: 12,
                 ),
-              ),
-            ),
-            const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                Text(profile.username, style: AppTypography.displayMedium, textAlign: TextAlign.center),
+                const SizedBox(height: 4),
+                Text('$title • Level ${profile.playerLevel}', style: AppTypography.titleMedium, textAlign: TextAlign.center),
+                const SizedBox(height: 18),
 
-            // Performance Statistics Header
-            const Text('OVERALL PERFORMANCE', style: AppTypography.labelSmall),
-            const SizedBox(height: 10),
+                // XP Progress Card
+                AppCard(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: XpProgressBar(
+                      currentXp: xpMetrics.currentXpInLevel,
+                      nextLevelXp: xpMetrics.xpForNextLevel,
+                      playerLevel: profile.playerLevel,
+                      height: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
-            // Row 1: Primary Stats
-            const AppCard(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _StatColumn(label: 'Total XP', value: '0'),
-                  _StatColumn(label: 'Coins', value: '${AppConstants.startingCoins}'),
-                  _StatColumn(label: 'Stars', value: '0 / 150'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
+                // Performance Statistics Header
+                const Text('OVERALL PERFORMANCE', style: AppTypography.labelSmall),
+                const SizedBox(height: 10),
 
-            // Row 2: Secondary Stats
-            const AppCard(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _StatColumn(label: 'Levels Won', value: '0'),
-                  _StatColumn(label: 'Streak', value: '0 days'),
-                  _StatColumn(label: 'Win Rate', value: '100%'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 28),
+                // Row 1: Primary Stats
+                AppCard(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _StatColumn(label: 'Total XP', value: '${profile.totalXp}'),
+                      _StatColumn(label: 'Coins', value: '${profile.coinBalance}'),
+                      _StatColumn(label: 'Stars', value: '${profile.totalStars} / 150'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
 
-            // Quick Badges Link
-            AppButton(
-              label: 'View Achievements',
-              icon: Icons.emoji_events_rounded,
-              variant: AppButtonVariant.outline,
-              onPressed: () => context.push(RoutePaths.achievements),
-            ),
-          ],
+                // Row 2: Secondary Stats
+                AppCard(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _StatColumn(label: 'Levels Won', value: '${profile.levelsCompletedCount}'),
+                      _StatColumn(label: 'Streak', value: '${profile.currentStreak} days'),
+                      _StatColumn(label: 'Best Streak', value: '${profile.bestStreak} days'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 28),
+
+                // Quick Badges Link
+                AppButton(
+                  label: 'View Achievements',
+                  icon: Icons.emoji_events_rounded,
+                  variant: AppButtonVariant.outline,
+                  onPressed: () => context.push(RoutePaths.achievements),
+                ),
+              ],
+            );
+          },
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+          error: (err, stack) => Center(
+            child: Text('Error loading profile: $err', style: AppTypography.bodyMedium),
+          ),
         ),
       ),
     );

@@ -24,6 +24,15 @@ class AppColors {
   static const Color starGold = Color(0xFFFFD166);
   static const Color starEmpty = Color(0xFF334155);
 
+  // Mini-game theme colors
+  static const Color gameCubeLogic = Color(0xFF00E5FF);
+  static const Color gameBridgeMaster = Color(0xFFFFB703);
+  static const Color gameMazeArchitect = Color(0xFF10B981);
+  static const Color gamePatternMatrix = Color(0xFF8B5CF6);
+  static const Color gameGravityOrb = Color(0xFFEC4899);
+  static const Color gameQuantumLock = Color(0xFF6366F1);
+  static const Color gameChronoShift = Color(0xFF14B8A6);
+
   // Typography
   static const Color textPrimary = Color(0xFFF8FAFC);
   static const Color textSecondary = Color(0xFF94A3B8);
