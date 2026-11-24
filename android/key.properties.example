@@ -1,0 +1,15 @@
+# Copy this file to android/key.properties and fill in real values.
+# android/key.properties is gitignored and must never be committed.
+#
+# Generate an upload keystore with:
+#   keytool -genkeypair -v -keystore android/app/upload-keystore.jks \
+#     -storetype PKCS12 -keyalg RSA -keysize 2048 -validity 10000 \
+#     -alias upload -dname "CN=MINDVERSE Upload Key, O=MINDVERSE, C=US"
+#
+# Then enroll the app in Google Play App Signing and keep this upload key
+# backed up. Losing it requires an upload-key reset through Play Console.
+
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+storeFile=upload-keystore.jks

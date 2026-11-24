@@ -15,38 +15,45 @@ class CoinBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: AppColors.secondary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.secondary.withValues(alpha: 0.35),
-              width: 1.2,
+    return Semantics(
+      label: '$coins coins',
+      button: onTap != null,
+      enabled: onTap != null,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.secondary.withValues(alpha: 0.35),
+                width: 1.2,
+              ),
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.monetization_on_rounded,
-                size: 16,
-                color: AppColors.secondary,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                '$coins',
-                style: AppTypography.labelLarge.copyWith(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.monetization_on_rounded,
+                  size: 16,
                   color: AppColors.secondary,
-                  fontSize: 13,
                 ),
-              ),
-            ],
+                const SizedBox(width: 5),
+                Text(
+                  '$coins',
+                  style: AppTypography.labelLarge.copyWith(
+                    color: AppColors.secondary,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

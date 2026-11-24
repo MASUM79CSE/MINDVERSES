@@ -92,12 +92,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                       ),
                     ),
                     const SizedBox(height: 28),
-                    const Text(
+                    Text(
                       AppConstants.appName,
                       style: AppTypography.displayLarge,
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       AppConstants.appTagline,
                       style: AppTypography.bodyLarge,
                     ),

@@ -59,6 +59,20 @@ class XpService {
     return xp;
   }
 
+  /// Awards base/replay XP plus bonuses only for stars earned on this attempt.
+  static int calculateIncrementalXpReward({
+    required bool isFirstClear,
+    required bool star2Efficiency,
+    required bool star3Mastery,
+    required bool previouslyEarnedStar2,
+    required bool previouslyEarnedStar3,
+  }) {
+    var xp = isFirstClear ? 100 : 10;
+    if (star2Efficiency && !previouslyEarnedStar2) xp += 50;
+    if (star3Mastery && !previouslyEarnedStar3) xp += 50;
+    return xp;
+  }
+
   /// Returns level title based on player level.
   static String getLevelTitle(int level) {
     if (level < 2) return 'Novice Thinker';

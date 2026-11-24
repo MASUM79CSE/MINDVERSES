@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../app/config/app_constants.dart';
 import '../../../app/router/route_paths.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_typography.dart';
@@ -41,22 +42,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Edit Username', style: AppTypography.titleLarge),
+        title: Text('Edit Username', style: AppTypography.titleLarge),
         content: TextField(
           controller: controller,
           autofocus: true,
           style: AppTypography.bodyLarge.copyWith(color: AppColors.textPrimary),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'Enter new username',
             hintStyle: AppTypography.bodyMedium,
             enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.borderSubtle)),
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () {
@@ -86,7 +87,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Choose Your Avatar', style: AppTypography.titleLarge),
+            Text('Choose Your Avatar', style: AppTypography.titleLarge),
             const SizedBox(height: 16),
             Wrap(
               spacing: 16,
@@ -221,7 +222,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 20),
 
                 // Performance Statistics Header
-                const Text('OVERALL PERFORMANCE', style: AppTypography.labelSmall),
+                Text('OVERALL PERFORMANCE', style: AppTypography.labelSmall),
                 const SizedBox(height: 10),
 
                 // Row 1: Primary Stats
@@ -231,7 +232,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       _StatColumn(label: 'Total XP', value: '${profile.totalXp}'),
                       _StatColumn(label: 'Coins', value: '${profile.coinBalance}'),
-                      _StatColumn(label: 'Stars', value: '${profile.totalStars} / 150'),
+                      _StatColumn(label: 'Stars', value: '${profile.totalStars} / ${AppConstants.totalCampaignStars}'),
                     ],
                   ),
                 ),

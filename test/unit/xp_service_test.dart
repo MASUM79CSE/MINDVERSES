@@ -69,4 +69,45 @@ void main() {
       expect(XpService.getLevelTitle(25), 'Grandmaster Strategist');
     });
   });
+
+  group('XpService completion rewards', () {
+    test('awards base and star bonuses on a first clear', () {
+      expect(
+        XpService.calculateIncrementalXpReward(
+          isFirstClear: true,
+          star2Efficiency: true,
+          star3Mastery: true,
+          previouslyEarnedStar2: false,
+          previouslyEarnedStar3: false,
+        ),
+        200,
+      );
+    });
+
+    test('awards only newly earned star bonuses plus nominal replay XP', () {
+      expect(
+        XpService.calculateIncrementalXpReward(
+          isFirstClear: false,
+          star2Efficiency: true,
+          star3Mastery: true,
+          previouslyEarnedStar2: false,
+          previouslyEarnedStar3: false,
+        ),
+        110,
+      );
+    });
+
+    test('does not repeat bonuses for stars already earned', () {
+      expect(
+        XpService.calculateIncrementalXpReward(
+          isFirstClear: false,
+          star2Efficiency: true,
+          star3Mastery: true,
+          previouslyEarnedStar2: true,
+          previouslyEarnedStar3: true,
+        ),
+        10,
+      );
+    });
+  });
 }

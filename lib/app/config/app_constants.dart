@@ -6,6 +6,12 @@ class AppConstants {
   static const String appTagline = 'Think. Solve. Explore.';
   static const String appVersion = '1.0.0';
 
+  // Developer & Publisher
+  static const String developerName = 'Mir Md. Masum';
+  static const String developerEmail = 'mirmasum@mail.com';
+  static const String socialInstagram = 'mirmd_masum';
+  static const String socialDiscord = 'mir_masum';
+
   // Game IDs
   static const String gameCubeLogic = 'cube_logic';
   static const String gameBridgeMaster = 'bridge_master';
@@ -28,7 +34,19 @@ class AppConstants {
   static const int cubeLogicTotalLevels = 20;
   static const int bridgeMasterTotalLevels = 15;
   static const int mazeArchitectTotalLevels = 15;
-  static const int totalMvpLevels = 50;
+  static const int gearTheoryTotalLevels = 10;
+  static const int tinyKingdomTotalLevels = 10;
+  static const int perspectiveTotalLevels = 10;
+  static const int memoryMatrixTotalLevels = 10;
+  static const int totalCampaignLevels =
+      cubeLogicTotalLevels +
+      bridgeMasterTotalLevels +
+      mazeArchitectTotalLevels +
+      gearTheoryTotalLevels +
+      tinyKingdomTotalLevels +
+      perspectiveTotalLevels +
+      memoryMatrixTotalLevels;
+  static const int totalCampaignStars = totalCampaignLevels * 3;
 
   // Storage
   static const int currentSchemaVersion = 1;

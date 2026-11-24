@@ -8,10 +8,14 @@ import '../models/daily_challenge.dart';
 class DailyChallengeService {
   DailyChallengeService._();
 
-  static const List<String> _mvpGames = [
+  static const List<String> _games = [
     AppConstants.gameCubeLogic,
     AppConstants.gameBridgeMaster,
     AppConstants.gameMazeArchitect,
+    AppConstants.gameGearTheory,
+    AppConstants.gameTinyKingdom,
+    AppConstants.gamePerspective,
+    AppConstants.gameMemoryMatrix,
   ];
 
   /// Generates the daily challenge for a given UTC [date].
@@ -29,11 +33,11 @@ class DailyChallengeService {
     final seed = hashInt.abs();
 
     // Select game
-    final gameIndex = seed % _mvpGames.length;
-    final gameId = _mvpGames[gameIndex];
+    final gameIndex = seed % _games.length;
+    final gameId = _games[gameIndex];
 
     // Select level (levels 1 to 10 for daily challenges)
-    final levelNumber = ((seed ~/ _mvpGames.length) % 10) + 1;
+    final levelNumber = ((seed ~/ _games.length) % 10) + 1;
 
     final (title, desc) = switch (gameId) {
       AppConstants.gameCubeLogic => (
@@ -47,6 +51,22 @@ class DailyChallengeService {
       AppConstants.gameMazeArchitect => (
           'Maze Architect Path',
           'Navigate modular sliding tiles in Level $levelNumber to the exit.',
+        ),
+      AppConstants.gameGearTheory => (
+          'Gear Theory Challenge',
+          'Transmit rotational energy in Level $levelNumber.',
+        ),
+      AppConstants.gameTinyKingdom => (
+          'Tiny Kingdom Challenge',
+          'Build a high-scoring settlement in Level $levelNumber.',
+        ),
+      AppConstants.gamePerspective => (
+          'Perspective Challenge',
+          'Align the fragments in Level $levelNumber.',
+        ),
+      AppConstants.gameMemoryMatrix => (
+          'Memory Matrix Challenge',
+          'Recall the sequence in Level $levelNumber.',
         ),
       _ => ('Mindverse Puzzle', 'Solve Level $levelNumber.'),
     };
@@ -80,10 +100,12 @@ class DailyChallengeService {
     final today = DateTime.parse(todayDate);
     final difference = today.difference(lastDate).inDays;
 
-    if (difference == 1) {
-      return currentStreak + 1;
-    } else {
-      return 1; // Streak broken, restart at 1
+    if (difference < 0) {
+      return currentStreak.clamp(0, 7);
     }
+    if (difference == 1) {
+      return (currentStreak + 1).clamp(1, 7);
+    }
+    return 1; // Streak broken, restart at 1
   }
 }

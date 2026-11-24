@@ -5,6 +5,8 @@ import 'package:mindverse/shared/models/coin_transaction.dart';
 import 'package:mindverse/shared/services/coin_economy_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/test_storage.dart';
+
 void main() {
   group('CoinEconomyService Tests', () {
     late LocalStorageService storage;
@@ -13,8 +15,12 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
-      storage = LocalStorageService(prefs);
+      storage = await createTestLocalStorage(prefs);
       economy = CoinEconomyServiceImpl(storage);
+    });
+
+    tearDown(() async {
+      await storage.close();
     });
 
     test('initial balance defaults to 100 starting coins', () async {
@@ -23,20 +29,20 @@ void main() {
     });
 
     test('recordTransaction with positive amount awards coins and updates balance', () async {
-      await economy.recordTransaction(
+      expect(await economy.recordTransaction(
         type: CoinTransactionType.earnLevelClear,
         amount: 50,
         referenceId: 'cube_logic_1',
-      );
+      ), isTrue);
 
-      final newBalance = await economy.getBalance();
-      expect(newBalance, 150);
+      expect(await economy.getBalance(), 150);
 
       final history = await economy.getTransactionHistory();
-      expect(history.length, 1);
-      expect(history.first.amount, 50);
-      expect(history.first.referenceId, 'cube_logic_1');
-      expect(history.first.balanceAfter, 150);
+      expect(history, hasLength(2));
+      expect(history.first.type, CoinTransactionType.openingBalance);
+      expect(history.last.amount, 50);
+      expect(history.last.referenceId, 'cube_logic_1');
+      expect(history.last.balanceAfter, 150);
     });
 
     test('recordTransaction with negative amount spends coins when sufficient', () async {
@@ -48,46 +54,39 @@ void main() {
         referenceId: 'cube_logic_3_hint',
       );
 
-      final remaining = await economy.getBalance();
-      expect(remaining, 70);
+      expect(await economy.getBalance(), 70);
     });
 
     test('recordTransaction throws EconomyFailure when spending exceeds balance', () async {
       expect(await economy.canAfford(500), isFalse);
 
-      expect(
-        () => economy.recordTransaction(
+      await expectLater(
+        economy.recordTransaction(
           type: CoinTransactionType.spendHint,
           amount: -500,
           referenceId: 'failed_purchase',
         ),
         throwsA(isA<EconomyFailure>()),
       );
-      // Balance remains unchanged
       expect(await economy.getBalance(), 100);
     });
 
-    test('recordTransaction rejects duplicate reward claim for same referenceId', () async {
-      await economy.recordTransaction(
+    test('recordTransaction returns false for a duplicate reference and type', () async {
+      expect(await economy.recordTransaction(
         type: CoinTransactionType.earnAchievement,
         amount: 100,
         referenceId: 'first_win_badge',
-      );
+      ), isTrue);
       expect(await economy.getBalance(), 200);
 
-      // Attempt second claim with same referenceId and type
-      expect(
-        () => economy.recordTransaction(
-          type: CoinTransactionType.earnAchievement,
-          amount: 100,
-          referenceId: 'first_win_badge',
-        ),
-        throwsA(isA<EconomyFailure>()),
-      );
+      expect(await economy.recordTransaction(
+        type: CoinTransactionType.earnAchievement,
+        amount: 100,
+        referenceId: 'first_win_badge',
+      ), isFalse);
 
       expect(await economy.getBalance(), 200);
-      final history = await economy.getTransactionHistory();
-      expect(history.length, 1);
+      expect(await economy.getTransactionHistory(), hasLength(2));
     });
   });
 }

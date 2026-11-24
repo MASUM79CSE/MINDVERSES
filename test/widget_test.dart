@@ -5,6 +5,8 @@ import 'package:mindverse/core/storage/storage_keys.dart';
 import 'package:mindverse/shared/providers/shared_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/test_storage.dart';
+
 void main() {
   testWidgets('App launches to Splash and navigates to Hub smoke test', (WidgetTester tester) async {
     // Seed onboarding as completed so splash navigates directly to Hub
@@ -12,11 +14,14 @@ void main() {
       StorageKeys.hasCompletedOnboarding: true,
     });
     final prefs = await SharedPreferences.getInstance();
+    final storage = (await tester.runAsync(() => createTestLocalStorage(prefs)))!;
+    addTearDown(storage.close);
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          localStorageServiceProvider.overrideWithValue(storage),
         ],
         child: const MindverseApp(),
       ),

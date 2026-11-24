@@ -1,10 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mindverse/core/storage/local_storage_service.dart';
 import 'package:mindverse/shared/models/level_result.dart';
+import 'package:mindverse/shared/models/player_profile.dart';
 import 'package:mindverse/shared/repositories/achievement_repository.dart';
 import 'package:mindverse/shared/repositories/level_progress_repository.dart';
 import 'package:mindverse/shared/repositories/profile_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../support/test_storage.dart';
 
 void main() {
   group('Progression Repositories Tests', () {
@@ -13,7 +16,11 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
-      storage = LocalStorageService(prefs);
+      storage = await createTestLocalStorage(prefs);
+    });
+
+    tearDown(() async {
+      await storage.close();
     });
 
     test('ProfileRepository initializes default profile and persists updates', () async {
@@ -41,6 +48,75 @@ void main() {
       expect(updated.coinBalance, 150);
       expect(updated.totalStars, 3);
       expect(updated.levelsCompletedCount, 1);
+    });
+
+    test('ProfileRepository serializes concurrent profile increments', () async {
+      final repo = ProfileRepositoryImpl(storage);
+      await repo.getProfile();
+
+      await Future.wait(List.generate(30, (_) => repo.updateProfile(xpToAdd: 10)));
+
+      final persisted = PlayerProfile.fromJson(
+        (await storage.readDocument('player_profile.json'))!,
+      );
+      expect(persisted.totalXp, 300);
+    });
+
+    test('LevelProgressRepository preserves best replay results', () async {
+      final repo = LevelProgressRepositoryImpl(storage);
+      final firstCompletedAt = DateTime.utc(2026, 1, 1);
+
+      await repo.saveLevelResult(LevelResult(
+        gameId: 'cube_logic',
+        levelNumber: 1,
+        isCompleted: true,
+        starsEarned: 1,
+        star1Completed: true,
+        bestMoveCount: 12,
+        hintsUsedCount: 1,
+        firstCompletedAt: firstCompletedAt,
+        lastPlayedAt: firstCompletedAt,
+        playCount: 1,
+      ));
+      await repo.saveLevelResult(LevelResult(
+        gameId: 'cube_logic',
+        levelNumber: 1,
+        isCompleted: true,
+        starsEarned: 3,
+        star1Completed: true,
+        star2Efficiency: true,
+        star3Mastery: true,
+        bestMoveCount: 8,
+        hintsUsedCount: 0,
+        firstCompletedAt: DateTime.utc(2026, 1, 2),
+        lastPlayedAt: DateTime.utc(2026, 1, 2),
+        playCount: 1,
+      ));
+
+      var result = (await repo.getLevelResult('cube_logic', 1))!;
+      expect(result.starsEarned, 3);
+      expect(result.bestMoveCount, 8);
+      expect(result.hintsUsedCount, 0);
+      expect(result.playCount, 2);
+      expect(result.firstCompletedAt, firstCompletedAt);
+
+      await repo.saveLevelResult(LevelResult(
+        gameId: 'cube_logic',
+        levelNumber: 1,
+        isCompleted: true,
+        starsEarned: 1,
+        star1Completed: true,
+        bestMoveCount: 15,
+        hintsUsedCount: 2,
+        firstCompletedAt: DateTime.utc(2026, 1, 3),
+        lastPlayedAt: DateTime.utc(2026, 1, 3),
+        playCount: 1,
+      ));
+      result = (await repo.getLevelResult('cube_logic', 1))!;
+      expect(result.starsEarned, 3);
+      expect(result.bestMoveCount, 8);
+      expect(result.hintsUsedCount, 0);
+      expect(result.playCount, 3);
     });
 
     test('LevelProgressRepository saves results and unlocks next level', () async {

@@ -1,31 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../app/config/app_constants.dart';
+import '../../../app/router/route_paths.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/star_display.dart';
+import '../../../shared/providers/shared_providers.dart';
 
 /// Interactive grid displaying playable levels with star ratings and locked states.
-class LevelSelectScreen extends StatelessWidget {
+class LevelSelectScreen extends ConsumerWidget {
   final String gameId;
 
   const LevelSelectScreen({super.key, required this.gameId});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final (gameTitle, totalLevels, accentColor) = switch (gameId) {
       AppConstants.gameCubeLogic => ('Cube Logic', AppConstants.cubeLogicTotalLevels, AppColors.primary),
       AppConstants.gameBridgeMaster => ('Bridge Master', AppConstants.bridgeMasterTotalLevels, AppColors.secondary),
       AppConstants.gameMazeArchitect => ('Maze Architect', AppConstants.mazeArchitectTotalLevels, AppColors.energyActive),
+      AppConstants.gameGearTheory => ('Gear Theory', AppConstants.gearTheoryTotalLevels, AppColors.gameGearTheory),
+      AppConstants.gameTinyKingdom => ('Tiny Kingdom', AppConstants.tinyKingdomTotalLevels, AppColors.gameTinyKingdom),
+      AppConstants.gamePerspective => ('Perspective', AppConstants.perspectiveTotalLevels, AppColors.gamePerspective),
+      AppConstants.gameMemoryMatrix => ('Memory Matrix', AppConstants.memoryMatrixTotalLevels, AppColors.gameMemoryMatrix),
       _ => ('Puzzles', 15, AppColors.primary),
     };
+
+    final results = ref.watch(levelResultsProvider).valueOrNull ?? const {};
+    final gameResults = results.values
+        .where((result) => result.gameId == gameId && result.levelNumber <= totalLevels)
+        .toList();
+    final totalStars = gameResults.fold<int>(0, (sum, result) => sum + result.starsEarned);
+    final unlockedLevels = <int>{1};
+    for (final result in gameResults) {
+      if (result.isUnlocked) unlockedLevels.add(result.levelNumber);
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('$gameTitle Levels'),
+        title: Text(
+          '$gameTitle Levels',
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
       ),
       body: SafeArea(
         child: Column(
@@ -34,25 +56,38 @@ class LevelSelectScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
               child: AppCard(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('CAMPAIGN PROGRESS', style: AppTypography.labelSmall),
-                        const SizedBox(height: 4),
-                        Text('1 of $totalLevels Unlocked', style: AppTypography.titleMedium),
-                      ],
-                    ),
-                    const Row(
-                      children: [
-                        Icon(Icons.star_rounded, color: AppColors.starGold, size: 22),
-                        SizedBox(width: 4),
-                        Text('0 / 60 Stars', style: AppTypography.labelLarge),
-                      ],
-                    ),
-                  ],
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('CAMPAIGN PROGRESS', style: AppTypography.labelSmall),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${unlockedLevels.length} of $totalLevels Unlocked',
+                            style: AppTypography.titleMedium,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 16),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.star_rounded, color: AppColors.starGold, size: 22),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$totalStars / ${totalLevels * 3} Stars',
+                            style: AppTypography.labelLarge,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -61,62 +96,84 @@ class LevelSelectScreen extends StatelessWidget {
             // Grid of Levels
             Expanded(
               child: GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.85,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 100,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 0.9,
                 ),
                 itemCount: totalLevels,
                 itemBuilder: (context, index) {
                   final levelNumber = index + 1;
-                  // Level 1 is unlocked by default in foundation shell
-                  final isUnlocked = levelNumber <= 2;
-                  final isCompleted = levelNumber == 1;
-                  final earnedStars = levelNumber == 1 ? 3 : 0;
+                  final result = results['${gameId}_level_$levelNumber'];
+                  final isUnlocked = levelNumber == 1 || (result?.isUnlocked ?? false);
+                  final isCompleted = result?.isCompleted ?? false;
+                  final earnedStars = result?.starsEarned ?? 0;
 
-                  return AppCard(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                    hasGlow: isUnlocked && !isCompleted,
-                    glowColor: accentColor,
-                    onTap: () {
-                      if (isUnlocked) {
-                        _showLevelPreviewDialog(
-                          context: context,
-                          gameTitle: gameTitle,
-                          levelNumber: levelNumber,
-                          accentColor: accentColor,
-                        );
-                      } else {
-                        AppDialog.showConfirmation(
-                          context: context,
-                          title: 'Level Locked',
-                          message: 'Complete Level ${levelNumber - 1} to unlock this challenge.',
-                          confirmLabel: 'Understood',
-                          cancelLabel: 'Close',
-                          icon: Icons.lock_outline_rounded,
-                          iconColor: AppColors.textMuted,
-                        );
-                      }
-                    },
-                    child: Column(
+                  void handleTap() {
+                    if (isUnlocked) {
+                      _showLevelPreviewDialog(
+                        context: context,
+                        gameTitle: gameTitle,
+                        levelNumber: levelNumber,
+                        accentColor: accentColor,
+                        earnedStars: earnedStars,
+                        isCompleted: isCompleted,
+                      );
+                    } else {
+                      AppDialog.showConfirmation(
+                        context: context,
+                        title: 'Level Locked',
+                        message:
+                            'Complete Level ${levelNumber - 1} to unlock this challenge.',
+                        confirmLabel: 'Understood',
+                        cancelLabel: 'Close',
+                        icon: Icons.lock_outline_rounded,
+                        iconColor: AppColors.textMuted,
+                      );
+                    }
+                  }
+
+                  final status = isUnlocked
+                      ? (isCompleted ? 'completed' : 'unlocked')
+                      : 'locked';
+
+                  return Semantics(
+                    button: true,
+                    label:
+                        'Level $levelNumber, $status, $earnedStars of 3 stars',
+                    onTap: handleTap,
+                    excludeSemantics: true,
+                    child: AppCard(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 4,
+                      ),
+                      hasGlow: isUnlocked && !isCompleted,
+                      glowColor: accentColor,
+                      onTap: handleTap,
+                      child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          '$levelNumber',
-                          style: AppTypography.titleLarge.copyWith(
-                            color: isUnlocked ? AppColors.textPrimary : AppColors.textMuted,
-                            fontSize: 22,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '$levelNumber',
+                            style: AppTypography.titleLarge.copyWith(
+                              color: isUnlocked ? AppColors.textPrimary : AppColors.textMuted,
+                              fontSize: 22,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 6),
                         if (isUnlocked)
                           StarDisplay(earnedStars: earnedStars, starSize: 13, spacing: 1)
                         else
-                          const Icon(Icons.lock_rounded, size: 16, color: AppColors.textMuted),
+                          Icon(Icons.lock_rounded, size: 16, color: AppColors.textMuted),
                       ],
                     ),
+                  ),
                   );
                 },
               ),
@@ -132,6 +189,8 @@ class LevelSelectScreen extends StatelessWidget {
     required String gameTitle,
     required int levelNumber,
     required Color accentColor,
+    required int earnedStars,
+    required bool isCompleted,
   }) {
     showDialog<void>(
       context: context,
@@ -179,13 +238,13 @@ class LevelSelectScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Objective: Connect all energy conduits within the move limit to earn maximum stars.',
+              Text(
+                'Objective: Complete the puzzle challenge within the move limit to earn maximum stars.',
                 style: AppTypography.bodyLarge,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-              const StarDisplay(earnedStars: 0, starSize: 24),
+              StarDisplay(earnedStars: earnedStars, starSize: 24),
               const SizedBox(height: 24),
               Row(
                 children: [
@@ -200,18 +259,34 @@ class LevelSelectScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: AppButton(
-                      label: 'Start Puzzle',
+                      label: isCompleted ? 'Replay Puzzle' : 'Start Puzzle',
                       variant: AppButtonVariant.primary,
                       height: 46,
                       icon: Icons.play_arrow_rounded,
                       onPressed: () {
                         Navigator.of(ctx).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('$gameTitle Level $levelNumber engine engages in Phase 5'),
-                            duration: const Duration(milliseconds: 1500),
-                          ),
-                        );
+                        if (gameId == AppConstants.gameCubeLogic) {
+                          context.go(RoutePaths.cubeLogicLevel(levelNumber));
+                        } else if (gameId == AppConstants.gameBridgeMaster) {
+                          context.go(RoutePaths.bridgeMasterLevel(levelNumber));
+                        } else if (gameId == AppConstants.gameMazeArchitect) {
+                          context.go(RoutePaths.mazeArchitectLevel(levelNumber));
+                        } else if (gameId == AppConstants.gameGearTheory) {
+                          context.go(RoutePaths.gearTheoryLevel(levelNumber));
+                        } else if (gameId == AppConstants.gameTinyKingdom) {
+                          context.go(RoutePaths.tinyKingdomLevel(levelNumber));
+                        } else if (gameId == AppConstants.gamePerspective) {
+                          context.go(RoutePaths.perspectiveLevel(levelNumber));
+                        } else if (gameId == AppConstants.gameMemoryMatrix) {
+                          context.go(RoutePaths.memoryMatrixLevel(levelNumber));
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('$gameTitle Level $levelNumber engine engages in future phase'),
+                              duration: const Duration(milliseconds: 1500),
+                            ),
+                          );
+                        }
                       },
                     ),
                   ),

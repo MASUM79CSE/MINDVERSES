@@ -15,4 +15,12 @@ class StorageKeys {
   static const String achievementsFile = 'achievements.json';
   static const String coinLedgerFile = 'coin_ledger.json';
   static const String dailyChallengeFile = 'daily_challenge.json';
+
+  static const List<String> documentFiles = [
+    playerProfileFile,
+    levelProgressFile,
+    achievementsFile,
+    coinLedgerFile,
+    dailyChallengeFile,
+  ];
 }

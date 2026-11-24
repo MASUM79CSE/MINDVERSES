@@ -10,10 +10,25 @@ void main() {
     test('appName and tagline are configured correctly', () {
       expect(AppConstants.appName, 'MINDVERSE');
       expect(AppConstants.appTagline, 'Think. Solve. Explore.');
-      expect(AppConstants.totalMvpLevels, 50);
+      expect(AppConstants.totalCampaignLevels, 90);
+      expect(AppConstants.totalCampaignStars, 270);
       expect(AppConstants.cubeLogicTotalLevels, 20);
       expect(AppConstants.bridgeMasterTotalLevels, 15);
       expect(AppConstants.mazeArchitectTotalLevels, 15);
+      expect(AppConstants.gearTheoryTotalLevels, 10);
+      expect(AppConstants.tinyKingdomTotalLevels, 10);
+      expect(AppConstants.perspectiveTotalLevels, 10);
+      expect(AppConstants.memoryMatrixTotalLevels, 10);
+      expect(
+        AppConstants.totalCampaignLevels,
+        AppConstants.cubeLogicTotalLevels +
+            AppConstants.bridgeMasterTotalLevels +
+            AppConstants.mazeArchitectTotalLevels +
+            AppConstants.gearTheoryTotalLevels +
+            AppConstants.tinyKingdomTotalLevels +
+            AppConstants.perspectiveTotalLevels +
+            AppConstants.memoryMatrixTotalLevels,
+      );
     });
   });
 

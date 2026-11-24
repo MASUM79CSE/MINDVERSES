@@ -6,15 +6,20 @@ import 'package:mindverse/features/profile/presentation/profile_screen.dart';
 import 'package:mindverse/shared/providers/shared_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/test_storage.dart';
+
 void main() {
   testWidgets('ProfileScreen allows updating username and picking avatar with Riverpod', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
+    final storage = (await tester.runAsync(() => createTestLocalStorage(prefs)))!;
+    addTearDown(storage.close);
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          localStorageServiceProvider.overrideWithValue(storage),
         ],
         child: MaterialApp(
           theme: AppTheme.darkTheme,

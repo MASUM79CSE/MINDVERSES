@@ -18,19 +18,24 @@ class StarDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(3, (index) {
-        final isFilled = index < earnedStars;
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: spacing / 2),
-          child: Icon(
-            isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
-            size: starSize,
-            color: isFilled ? AppColors.starGold : AppColors.starEmpty,
-          ),
-        );
-      }),
+    return Semantics(
+      label: '$earnedStars of 3 stars',
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (index) {
+            final isFilled = index < earnedStars;
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: spacing / 2),
+              child: Icon(
+                isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
+                size: starSize,
+                color: isFilled ? AppColors.starGold : AppColors.starEmpty,
+              ),
+            );
+          }),
+        ),
+      ),
     );
   }
 }

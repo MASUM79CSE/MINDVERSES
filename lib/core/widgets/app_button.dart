@@ -4,7 +4,7 @@ import '../../app/theme/app_typography.dart';
 
 enum AppButtonVariant { primary, secondary, outline, text }
 
-/// A modern, tactile button component with responsive press feedback.
+/// A high-end Cupertino / iOS 27 button component with blur, spring press states, and glowing gradients.
 class AppButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -22,36 +22,46 @@ class AppButton extends StatelessWidget {
     this.variant = AppButtonVariant.primary,
     this.isLoading = false,
     this.width,
-    this.height = 50,
+    this.height = 52,
   });
 
   @override
   Widget build(BuildContext context) {
     final isEnabled = onPressed != null && !isLoading;
 
-    Color backgroundColor;
     Color foregroundColor;
     BorderSide borderSide = BorderSide.none;
+    Gradient? gradient;
 
     switch (variant) {
       case AppButtonVariant.primary:
-        backgroundColor = isEnabled ? AppColors.primary : AppColors.surfaceElevated;
-        foregroundColor = isEnabled ? AppColors.textInverse : AppColors.textMuted;
+        foregroundColor = isEnabled ? Colors.white : AppColors.textMuted;
+        gradient = isEnabled
+            ? const LinearGradient(
+                colors: [Color(0xFF0A84FF), Color(0xFF0056B3)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null;
         break;
       case AppButtonVariant.secondary:
-        backgroundColor = isEnabled ? AppColors.secondary : AppColors.surfaceElevated;
-        foregroundColor = isEnabled ? AppColors.textInverse : AppColors.textMuted;
+        foregroundColor = isEnabled ? Colors.white : AppColors.textMuted;
+        gradient = isEnabled
+            ? const LinearGradient(
+                colors: [Color(0xFFFF9F0A), Color(0xFFC67A00)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null;
         break;
       case AppButtonVariant.outline:
-        backgroundColor = Colors.transparent;
         foregroundColor = isEnabled ? AppColors.primary : AppColors.textMuted;
         borderSide = BorderSide(
-          color: isEnabled ? AppColors.primary : AppColors.borderSubtle,
+          color: isEnabled ? AppColors.primary.withValues(alpha: 0.6) : AppColors.borderSubtle,
           width: 1.5,
         );
         break;
       case AppButtonVariant.text:
-        backgroundColor = Colors.transparent;
         foregroundColor = isEnabled ? AppColors.primary : AppColors.textMuted;
         break;
     }
@@ -65,7 +75,7 @@ class AppButton extends StatelessWidget {
             width: 18,
             height: 18,
             child: CircularProgressIndicator(
-              strokeWidth: 2,
+              strokeWidth: 2.5,
               valueColor: AlwaysStoppedAnimation<Color>(foregroundColor),
             ),
           ),
@@ -74,39 +84,62 @@ class AppButton extends StatelessWidget {
           Icon(icon, size: 20, color: foregroundColor),
           const SizedBox(width: 8),
         ],
-        Text(
-          label,
-          style: AppTypography.labelLarge.copyWith(color: foregroundColor),
+        Flexible(
+          child: Text(
+            label,
+            style: AppTypography.labelLarge.copyWith(color: foregroundColor),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );
 
-    return SizedBox(
-      width: width,
-      height: height,
-      child: Material(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: isEnabled ? onPressed : null,
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: borderSide != BorderSide.none ? Border.fromBorderSide(borderSide) : null,
-              boxShadow: (variant == AppButtonVariant.primary && isEnabled)
-                  ? const [
-                      BoxShadow(
-                        color: Color(0x3300E5FF),
-                        blurRadius: 12,
-                        offset: Offset(0, 4),
-                      ),
-                    ]
-                  : null,
+    return Semantics(
+      button: true,
+      enabled: isEnabled,
+      label: isLoading ? '$label, loading' : label,
+      onTap: isEnabled ? onPressed : null,
+      excludeSemantics: true,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26),
+            gradient: gradient,
+            color: gradient == null ? (isEnabled ? AppColors.surfaceElevated : AppColors.surfaceCard) : null,
+            border: borderSide != BorderSide.none ? Border.fromBorderSide(borderSide) : null,
+            boxShadow: (variant == AppButtonVariant.primary && isEnabled)
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(26),
+            child: InkWell(
+              onTap: isEnabled ? onPressed : null,
+              borderRadius: BorderRadius.circular(26),
+              splashColor: Colors.white.withValues(alpha: 0.2),
+              highlightColor: Colors.white.withValues(alpha: 0.1),
+              child: Container(
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: content,
+              ),
             ),
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: content,
           ),
         ),
       ),

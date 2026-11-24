@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../app/config/app_constants.dart';
+import '../../../app/router/route_paths.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
@@ -14,7 +17,7 @@ class DailyChallengeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final challenge = DailyChallengeService.generateChallengeForDate(DateTime.now());
-    final profileAsync = ref.watch(playerProfileNotifierProvider);
+    final status = ref.watch(dailyChallengeStatusProvider(challenge.dateString));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -55,43 +58,65 @@ class DailyChallengeScreen extends ConsumerWidget {
                     Column(
                       children: [
                         Text(
-                          '${profileAsync.asData?.value.currentStreak ?? 0} Days',
+                          '${status.asData?.value.currentStreak ?? 0} Days',
                           style: AppTypography.titleLarge,
                         ),
                         const SizedBox(height: 4),
-                        const Text('Current Streak', style: AppTypography.labelSmall),
+                        Text('Current Streak', style: AppTypography.labelSmall),
                       ],
                     ),
                     Column(
                       children: [
-                        Text('+${challenge.rewardCoins}', style: AppTypography.titleLarge),
+                        Text('+${challenge.rewardCoins + (status.asData?.value.streakBonusCoins ?? 0)}', style: AppTypography.titleLarge),
                         const SizedBox(height: 4),
-                        const Text('Reward Coins', style: AppTypography.labelSmall),
+                        Text('Reward Coins', style: AppTypography.labelSmall),
                       ],
                     ),
                     Column(
                       children: [
                         Text('+${challenge.rewardXp}', style: AppTypography.titleLarge),
                         const SizedBox(height: 4),
-                        const Text('Reward XP', style: AppTypography.labelSmall),
+                        Text('Reward XP', style: AppTypography.labelSmall),
                       ],
                     ),
                   ],
                 ),
               ),
               const Spacer(),
+              if (status.hasError)
+                const Text('Could not load challenge status. Please try again.')
+              else if (status.asData?.value.clockRollbackDetected == true)
+                const Text('Device clock moved backwards. Restore the correct time to claim a challenge.')
+              else if (status.asData?.value.isCompleted == true)
+                const Text('Today’s challenge is complete.', textAlign: TextAlign.center),
+              const SizedBox(height: 8),
               AppButton(
-                label: 'Begin Challenge',
+                label: status.hasError ? 'Retry' : 'Begin Challenge',
                 icon: Icons.play_arrow_rounded,
                 variant: AppButtonVariant.secondary,
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Starting ${challenge.challengeTitle}... Level gameplay launches in Phase 5!'),
-                      duration: const Duration(milliseconds: 2000),
-                    ),
-                  );
-                },
+                isLoading: status.isLoading,
+                onPressed: status.hasError
+                    ? () => ref.invalidate(dailyChallengeStatusProvider(challenge.dateString))
+                    : status.asData?.value.isCompleted == false &&
+                            status.asData?.value.clockRollbackDetected == false
+                        ? () async {
+                            final path = switch (challenge.gameId) {
+                              AppConstants.gameCubeLogic => RoutePaths.cubeLogicLevel(challenge.levelNumber),
+                              AppConstants.gameBridgeMaster => RoutePaths.bridgeMasterLevel(challenge.levelNumber),
+                              AppConstants.gameMazeArchitect => RoutePaths.mazeArchitectLevel(challenge.levelNumber),
+                              AppConstants.gameGearTheory => RoutePaths.gearTheoryLevel(challenge.levelNumber),
+                              AppConstants.gameTinyKingdom => RoutePaths.tinyKingdomLevel(challenge.levelNumber),
+                              AppConstants.gamePerspective => RoutePaths.perspectiveLevel(challenge.levelNumber),
+                              AppConstants.gameMemoryMatrix => RoutePaths.memoryMatrixLevel(challenge.levelNumber),
+                              _ => null,
+                            };
+                            if (path == null) return;
+                            await context.push(path, extra: challenge);
+                            if (context.mounted) {
+                              ref.invalidate(dailyChallengeStatusProvider(challenge.dateString));
+                            }
+                          }
+                        : null,
               ),
             ],
           ),

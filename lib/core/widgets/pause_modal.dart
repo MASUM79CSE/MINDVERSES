@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_typography.dart';
 import 'app_button.dart';
+import 'glass_container.dart';
 
-/// In-game pause modal allowing resuming, restarting, adjusting audio, or exiting.
+/// In-game iOS 27 glassmorphic pause modal.
 class PauseModal extends StatelessWidget {
   final VoidCallback onResume;
   final VoidCallback onRestart;
@@ -59,38 +60,37 @@ class PauseModal extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Container(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+      child: GlassContainer(
+        borderRadius: 28,
+        blur: 24,
         padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.borderSubtle, width: 1.5),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.shadowColor,
-              blurRadius: 30,
-              offset: Offset(0, 10),
-            ),
-          ],
-        ),
+        color: AppColors.surfaceCard.withValues(alpha: 0.8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Center(
-              child: Icon(Icons.pause_circle_outline_rounded, size: 54, color: AppColors.primary),
+            Center(
+              child: Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.pause_rounded, size: 32, color: AppColors.primary),
+              ),
             ),
-            const SizedBox(height: 16),
-            const Text(
+            const SizedBox(height: 18),
+            Text(
               'GAME PAUSED',
               style: AppTypography.displayMedium,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               '$gameTitle — Level $levelNumber',
-              style: AppTypography.bodyLarge,
+              style: AppTypography.bodyLarge.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 28),

@@ -61,17 +61,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       iconColor: AppColors.stressCritical,
     );
 
-    if (confirmed == true && mounted) {
-      final prefs = ref.read(sharedPreferencesProvider);
-      await prefs.remove(StorageKeys.hasCompletedOnboarding);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('All local progress reset successfully.'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref.read(localStorageServiceProvider).resetUserData();
+      ref.read(profileRepositoryProvider).invalidateCache();
+      ref.read(levelProgressRepositoryProvider).invalidateCache();
+      ref.read(achievementRepositoryProvider).invalidateCache();
+      await ref.read(sharedPreferencesProvider).remove(StorageKeys.hasCompletedOnboarding);
+
+      ref.invalidate(playerProfileNotifierProvider);
+      ref.invalidate(achievementsListProvider);
+      ref.invalidate(levelResultsProvider);
+      ref.invalidate(dailyChallengeStatusProvider);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All local progress reset successfully.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not reset progress. Please try again.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -89,15 +107,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
             // Audio & Haptics Section
-            const Text('AUDIO & HAPTICS', style: AppTypography.labelSmall),
+            Text('AUDIO & HAPTICS', style: AppTypography.labelSmall),
             const SizedBox(height: 10),
             AppCard(
               padding: EdgeInsets.zero,
               child: Column(
                 children: [
                   SwitchListTile(
-                    title: const Text('Sound Effects', style: AppTypography.titleMedium),
-                    subtitle: const Text('Rotations, node links, and fractures', style: AppTypography.bodyMedium),
+                    title: Text('Sound Effects', style: AppTypography.titleMedium),
+                    subtitle: Text('Rotations, node links, and fractures', style: AppTypography.bodyMedium),
                     value: _soundEnabled,
                     activeThumbColor: AppColors.primary,
                     activeTrackColor: AppColors.primary.withValues(alpha: 0.3),
@@ -105,8 +123,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const Divider(),
                   SwitchListTile(
-                    title: const Text('Music Ambiance', style: AppTypography.titleMedium),
-                    subtitle: const Text('Focus soundscape for puzzle solving', style: AppTypography.bodyMedium),
+                    title: Text('Music Ambiance', style: AppTypography.titleMedium),
+                    subtitle: Text('Focus soundscape for puzzle solving', style: AppTypography.bodyMedium),
                     value: _musicEnabled,
                     activeThumbColor: AppColors.primary,
                     activeTrackColor: AppColors.primary.withValues(alpha: 0.3),
@@ -114,8 +132,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const Divider(),
                   SwitchListTile(
-                    title: const Text('Tactile Haptic Feedback', style: AppTypography.titleMedium),
-                    subtitle: const Text('Vibrate on taps, grid snaps, and wins', style: AppTypography.bodyMedium),
+                    title: Text('Tactile Haptic Feedback', style: AppTypography.titleMedium),
+                    subtitle: Text('Vibrate on taps, grid snaps, and wins', style: AppTypography.bodyMedium),
                     value: _hapticEnabled,
                     activeThumbColor: AppColors.primary,
                     activeTrackColor: AppColors.primary.withValues(alpha: 0.3),
@@ -127,13 +145,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 24),
 
             // Appearance Section
-            const Text('APPEARANCE & THEME', style: AppTypography.labelSmall),
+            Text('APPEARANCE & THEME', style: AppTypography.labelSmall),
             const SizedBox(height: 10),
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Theme Mode', style: AppTypography.titleMedium),
+                  Text('Theme Mode', style: AppTypography.titleMedium),
                   const SizedBox(height: 12),
                   SegmentedButton<ThemeMode>(
                     segments: const [
@@ -148,7 +166,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       foregroundColor: AppColors.textSecondary,
                     ),
                     onSelectionChanged: (newSelection) {
-                      ref.read(themeModeProvider.notifier).state = newSelection.first;
+                      ref.read(themeModeProvider.notifier).setThemeMode(newSelection.first);
                     },
                   ),
                 ],
@@ -157,7 +175,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 24),
 
             // Privacy & System Section
-            const Text('PRIVACY & DATA', style: AppTypography.labelSmall),
+            Text('PRIVACY & DATA', style: AppTypography.labelSmall),
             const SizedBox(height: 10),
             AppCard(
               padding: EdgeInsets.zero,
@@ -165,8 +183,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.security_rounded, color: AppColors.energyActive),
-                    title: const Text('Data Safety & Privacy', style: AppTypography.titleMedium),
-                    trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
+                    title: Text('Data Safety & Privacy', style: AppTypography.titleMedium),
+                    trailing: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
                     onTap: _showPrivacyDialog,
                   ),
                   const Divider(),
@@ -184,16 +202,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 24),
 
             // About Section
-            const Text('ABOUT MINDVERSE', style: AppTypography.labelSmall),
+            Text('ABOUT MINDVERSE', style: AppTypography.labelSmall),
             const SizedBox(height: 10),
-            const AppCard(
+            AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(AppConstants.appName, style: AppTypography.titleMedium),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text('Version ${AppConstants.appVersion}', style: AppTypography.bodyMedium),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                     'Built with Flutter Clean Architecture.\nBrain Score is an internal game-performance metric only.',
                     style: AppTypography.bodyMedium,

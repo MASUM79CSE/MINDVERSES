@@ -34,6 +34,10 @@ class HubScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(playerProfileNotifierProvider);
+    final levelResults = ref.watch(levelResultsProvider).valueOrNull ?? const {};
+    int starsFor(String gameId) => levelResults.values
+        .where((result) => result.gameId == gameId)
+        .fold<int>(0, (sum, result) => sum + result.starsEarned);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -178,10 +182,12 @@ class HubScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                const Text('DAILY CHALLENGE', style: AppTypography.labelSmall),
-                                const SizedBox(width: 8),
+                                Text('DAILY CHALLENGE', style: AppTypography.labelSmall),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
@@ -193,7 +199,7 @@ class HubScreen extends ConsumerWidget {
                               ],
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               'Solve today\'s puzzle to earn +100 Coins & keep your streak!',
                               style: AppTypography.bodySmall,
                               maxLines: 2,
@@ -202,7 +208,7 @@ class HubScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textSecondary, size: 16),
+                      Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textSecondary, size: 16),
                     ],
                   ),
                 ),
@@ -210,13 +216,16 @@ class HubScreen extends ConsumerWidget {
             ),
 
             // Mini-Games Section Title
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 8, 20, 12),
-                child: Row(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 4,
                   children: [
                     Text('CHOOSE YOUR GAME', style: AppTypography.labelSmall),
-                    Spacer(),
                     Text('7 Brain Modes', style: AppTypography.bodySmall),
                   ],
                 ),
@@ -229,7 +238,7 @@ class HubScreen extends ConsumerWidget {
               sliver: SliverList(
                 delegate: SliverChildListDelegate(
                   [
-                    const _GameHubCard(
+                    _GameHubCard(
                       id: AppConstants.gameCubeLogic,
                       title: 'Cube Logic',
                       tagline: 'Connect 3D conduits in space',
@@ -237,11 +246,11 @@ class HubScreen extends ConsumerWidget {
                       accentColor: AppColors.gameCubeLogic,
                       icon: Icons.view_in_ar_rounded,
                       isAvailable: true,
-                      levelsCount: 20,
-                      earnedStars: 0,
+                      levelsCount: AppConstants.cubeLogicTotalLevels,
+                      earnedStars: starsFor(AppConstants.gameCubeLogic),
                     ),
                     const SizedBox(height: 14),
-                    const _GameHubCard(
+                    _GameHubCard(
                       id: AppConstants.gameBridgeMaster,
                       title: 'Bridge Master',
                       tagline: 'Physics-driven truss construction',
@@ -249,11 +258,11 @@ class HubScreen extends ConsumerWidget {
                       accentColor: AppColors.gameBridgeMaster,
                       icon: Icons.architecture_rounded,
                       isAvailable: true,
-                      levelsCount: 15,
-                      earnedStars: 0,
+                      levelsCount: AppConstants.bridgeMasterTotalLevels,
+                      earnedStars: starsFor(AppConstants.gameBridgeMaster),
                     ),
                     const SizedBox(height: 14),
-                    const _GameHubCard(
+                    _GameHubCard(
                       id: AppConstants.gameMazeArchitect,
                       title: 'Maze Architect',
                       tagline: 'Path navigation with sliding rules',
@@ -261,56 +270,56 @@ class HubScreen extends ConsumerWidget {
                       accentColor: AppColors.gameMazeArchitect,
                       icon: Icons.grid_goldenratio_rounded,
                       isAvailable: true,
-                      levelsCount: 15,
-                      earnedStars: 0,
+                      levelsCount: AppConstants.mazeArchitectTotalLevels,
+                      earnedStars: starsFor(AppConstants.gameMazeArchitect),
                     ),
                     const SizedBox(height: 14),
-                    const _GameHubCard(
-                      id: AppConstants.gamePatternMatrix,
-                      title: 'Pattern Matrix',
-                      tagline: 'Algorithmic pattern completion',
-                      category: 'Raven\'s Matrices',
-                      accentColor: AppColors.gamePatternMatrix,
-                      icon: Icons.pattern_rounded,
-                      isAvailable: false,
-                      levelsCount: 10,
-                      earnedStars: 0,
+                    _GameHubCard(
+                      id: AppConstants.gameGearTheory,
+                      title: 'Gear Theory',
+                      tagline: 'Mesh gears to drive the flywheel',
+                      category: 'Mechanical Kinematics',
+                      accentColor: AppColors.gameGearTheory,
+                      icon: Icons.settings_suggest_rounded,
+                      isAvailable: true,
+                      levelsCount: AppConstants.gearTheoryTotalLevels,
+                      earnedStars: starsFor(AppConstants.gameGearTheory),
                     ),
                     const SizedBox(height: 14),
-                    const _GameHubCard(
-                      id: AppConstants.gameGravityOrb,
-                      title: 'Gravity Orb',
-                      tagline: 'Momentum, gravity wells & ricochets',
-                      category: 'Physics Puzzle',
-                      accentColor: AppColors.gameGravityOrb,
-                      icon: Icons.blur_circular_rounded,
-                      isAvailable: false,
-                      levelsCount: 10,
-                      earnedStars: 0,
+                    _GameHubCard(
+                      id: AppConstants.gameTinyKingdom,
+                      title: 'Tiny Kingdom',
+                      tagline: 'Maximize adjacency synergies',
+                      category: 'Adjacency Strategy',
+                      accentColor: AppColors.gameTinyKingdom,
+                      icon: Icons.castle_rounded,
+                      isAvailable: true,
+                      levelsCount: AppConstants.tinyKingdomTotalLevels,
+                      earnedStars: starsFor(AppConstants.gameTinyKingdom),
                     ),
                     const SizedBox(height: 14),
-                    const _GameHubCard(
-                      id: AppConstants.gameQuantumLock,
-                      title: 'Quantum Lock',
-                      tagline: 'Multi-layer deduction & binary state',
-                      category: 'Cryptic Deduction',
-                      accentColor: AppColors.gameQuantumLock,
-                      icon: Icons.lock_clock_rounded,
-                      isAvailable: false,
-                      levelsCount: 10,
-                      earnedStars: 0,
+                    _GameHubCard(
+                      id: AppConstants.gamePerspective,
+                      title: 'Perspective',
+                      tagline: 'Align fragments into one silhouette',
+                      category: 'Optical Parallax',
+                      accentColor: AppColors.gamePerspective,
+                      icon: Icons.remove_red_eye_rounded,
+                      isAvailable: true,
+                      levelsCount: AppConstants.perspectiveTotalLevels,
+                      earnedStars: starsFor(AppConstants.gamePerspective),
                     ),
                     const SizedBox(height: 14),
-                    const _GameHubCard(
-                      id: AppConstants.gameChronoShift,
-                      title: 'Chrono Shift',
-                      tagline: 'Temporal recording & dual puzzle state',
-                      category: 'Time Paradox Logic',
-                      accentColor: AppColors.gameChronoShift,
-                      icon: Icons.history_toggle_off_rounded,
-                      isAvailable: false,
-                      levelsCount: 10,
-                      earnedStars: 0,
+                    _GameHubCard(
+                      id: AppConstants.gameMemoryMatrix,
+                      title: 'Memory Matrix',
+                      tagline: 'Recall fast spatial sequences',
+                      category: 'Cognitive Recall',
+                      accentColor: AppColors.gameMemoryMatrix,
+                      icon: Icons.memory_rounded,
+                      isAvailable: true,
+                      levelsCount: AppConstants.memoryMatrixTotalLevels,
+                      earnedStars: starsFor(AppConstants.gameMemoryMatrix),
                     ),
                     const SizedBox(height: 28),
                   ],
@@ -337,23 +346,29 @@ class _QuickActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+    return Semantics(
+      button: true,
+      label: label,
       onTap: onTap,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 20, color: AppColors.primary),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              label,
-              style: AppTypography.titleMedium.copyWith(fontSize: 14),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
+      excludeSemantics: true,
+      child: AppCard(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        onTap: onTap,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                style: AppTypography.titleMedium.copyWith(fontSize: 14),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -384,13 +399,19 @@ class _GameHubCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      hasGlow: isAvailable,
-      glowColor: accentColor,
-      onTap: () {
-        context.push('${RoutePaths.gameDetail}/$id');
-      },
-      child: Row(
+    void openGame() => context.push(RoutePaths.gameDetailPath(id));
+
+    return Semantics(
+      button: true,
+      label:
+          '$title. $category. $earnedStars of ${levelsCount * 3} stars earned.',
+      onTap: openGame,
+      excludeSemantics: true,
+      child: AppCard(
+        hasGlow: isAvailable,
+        glowColor: accentColor,
+        onTap: openGame,
+        child: Row(
         children: [
           // Game Icon Box
           Container(
@@ -465,21 +486,19 @@ class _GameHubCard extends StatelessWidget {
                 const SizedBox(height: 8),
 
                 // Stars & Level Progress
-                Row(
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     StarDisplay(
-                      earnedStars: earnedStars > 0 ? 1 : 0,
+                      earnedStars: earnedStars.clamp(0, 3),
                       starSize: 14,
                     ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        '$earnedStars / ${levelsCount * 3}',
-                        style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    Text(
+                      '$earnedStars / ${levelsCount * 3}',
+                      style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
                     ),
-                    const SizedBox(width: 8),
                     Text(
                       '$levelsCount Levels',
                       style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
@@ -490,8 +509,9 @@ class _GameHubCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textSecondary),
+          Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textSecondary),
         ],
+        ),
       ),
     );
   }

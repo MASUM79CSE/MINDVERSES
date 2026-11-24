@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_typography.dart';
 import 'app_button.dart';
+import 'glass_container.dart';
 
-/// A consistent 2.5D styled modal dialog for MINDVERSE.
+/// A consistent iOS 27 glassmorphic dialog for MINDVERSE.
 class AppDialog extends StatelessWidget {
   final String title;
   final String message;
@@ -58,20 +59,11 @@ class AppDialog extends StatelessWidget {
       backgroundColor: Colors.transparent,
       elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
+      child: GlassContainer(
+        borderRadius: 24,
+        blur: 24,
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.borderSubtle, width: 1.5),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.shadowColor,
-              blurRadius: 24,
-              offset: Offset(0, 8),
-            ),
-          ],
-        ),
+        color: AppColors.surfaceCard.withValues(alpha: 0.8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -79,20 +71,20 @@ class AppDialog extends StatelessWidget {
             if (icon != null) ...[
               Center(
                 child: Container(
-                  width: 56,
-                  height: 56,
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
                     color: (iconColor ?? AppColors.primary).withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     icon,
-                    size: 28,
+                    size: 30,
                     color: iconColor ?? AppColors.primary,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
             ],
             Text(
               title,
@@ -117,7 +109,7 @@ class AppDialog extends StatelessWidget {
                     child: AppButton(
                       label: secondaryActionLabel!,
                       variant: AppButtonVariant.outline,
-                      height: 44,
+                      height: 48,
                       onPressed: onSecondaryAction ?? () => Navigator.of(context).pop(),
                     ),
                   ),
@@ -127,7 +119,7 @@ class AppDialog extends StatelessWidget {
                   child: AppButton(
                     label: primaryActionLabel,
                     variant: AppButtonVariant.primary,
-                    height: 44,
+                    height: 48,
                     onPressed: onPrimaryAction,
                   ),
                 ),

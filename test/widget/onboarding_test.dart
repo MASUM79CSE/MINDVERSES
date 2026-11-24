@@ -8,10 +8,14 @@ import 'package:mindverse/features/onboarding/presentation/onboarding_screen.dar
 import 'package:mindverse/shared/providers/shared_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/test_storage.dart';
+
 void main() {
   testWidgets('Onboarding advances through slides and sets completion flag', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
+    final storage = (await tester.runAsync(() => createTestLocalStorage(prefs)))!;
+    addTearDown(storage.close);
 
     final testRouter = GoRouter(
       initialLocation: '/onboarding',
@@ -31,6 +35,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          localStorageServiceProvider.overrideWithValue(storage),
         ],
         child: MaterialApp.router(
           theme: AppTheme.darkTheme,

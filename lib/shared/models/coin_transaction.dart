@@ -8,6 +8,8 @@ enum CoinTransactionType {
   earnRewardedAd,
   spendHint,
   spendCosmetic,
+  openingBalance,
+  balanceReconciliation,
 }
 
 /// Immutable record of a verified coin transaction.

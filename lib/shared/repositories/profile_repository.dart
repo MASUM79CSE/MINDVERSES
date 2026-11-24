@@ -17,39 +17,47 @@ abstract class ProfileRepository {
     int? bestStreak,
     String? lastDailyChallengeDate,
   });
+  Future<PlayerProfile> updateProfileInTransaction(
+    LocalStorageTransaction transaction, {
+    String? username,
+    String? avatarId,
+    int? xpToAdd,
+    int? coinsToAdd,
+    int? starsToAdd,
+    int? levelsCompletedDelta,
+    int? currentStreak,
+    int? bestStreak,
+    String? lastDailyChallengeDate,
+  });
+  void invalidateCache();
   Future<void> resetProfile();
 }
 
 class ProfileRepositoryImpl implements ProfileRepository {
   final LocalStorageService _storage;
-  PlayerProfile? _cachedProfile;
 
   ProfileRepositoryImpl(this._storage);
 
   @override
   Future<PlayerProfile> getProfile() async {
-    if (_cachedProfile != null) {
-      return _cachedProfile!;
-    }
+    // Always read the persisted document so concurrent completions in another
+    // repository instance are never masked by a stale in-memory profile.
+    return _storage.runInTransaction((transaction) async {
+      final data = await transaction.readDocument(StorageKeys.playerProfileFile);
+      if (data != null) return PlayerProfile.fromJson(data);
 
-    final data = await _storage.readDocument(StorageKeys.playerProfileFile);
-    if (data != null) {
-      _cachedProfile = PlayerProfile.fromJson(data);
-      return _cachedProfile!;
-    }
-
-    // Create default guest profile
-    final initial = PlayerProfile.initial(id: 'usr_${DateTime.now().millisecondsSinceEpoch}');
-    await saveProfile(initial);
-    _cachedProfile = initial;
-    return initial;
+      final initial = PlayerProfile.initial(id: 'usr_${DateTime.now().millisecondsSinceEpoch}');
+      await transaction.writeDocument(StorageKeys.playerProfileFile, initial.toJson());
+      return initial;
+    });
   }
 
   @override
   Future<void> saveProfile(PlayerProfile profile) async {
     final updated = profile.copyWith(lastActiveAt: DateTime.now().toUtc());
-    await _storage.writeDocument(StorageKeys.playerProfileFile, updated.toJson());
-    _cachedProfile = updated;
+    await _storage.runInTransaction(
+      (transaction) => transaction.writeDocument(StorageKeys.playerProfileFile, updated.toJson()),
+    );
   }
 
   @override
@@ -64,14 +72,45 @@ class ProfileRepositoryImpl implements ProfileRepository {
     int? bestStreak,
     String? lastDailyChallengeDate,
   }) async {
-    final current = await getProfile();
+    await _storage.runInTransaction((transaction) {
+      return updateProfileInTransaction(
+        transaction,
+        username: username,
+        avatarId: avatarId,
+        xpToAdd: xpToAdd,
+        coinsToAdd: coinsToAdd,
+        starsToAdd: starsToAdd,
+        levelsCompletedDelta: levelsCompletedDelta,
+        currentStreak: currentStreak,
+        bestStreak: bestStreak,
+        lastDailyChallengeDate: lastDailyChallengeDate,
+      );
+    });
+  }
+
+  @override
+  Future<PlayerProfile> updateProfileInTransaction(
+    LocalStorageTransaction transaction, {
+    String? username,
+    String? avatarId,
+    int? xpToAdd,
+    int? coinsToAdd,
+    int? starsToAdd,
+    int? levelsCompletedDelta,
+    int? currentStreak,
+    int? bestStreak,
+    String? lastDailyChallengeDate,
+  }) async {
+    final data = await transaction.readDocument(StorageKeys.playerProfileFile);
+    final current = data == null
+        ? PlayerProfile.initial(id: 'usr_${DateTime.now().millisecondsSinceEpoch}')
+        : PlayerProfile.fromJson(data);
     final newXp = current.totalXp + (xpToAdd ?? 0);
     final newCoins = (current.coinBalance + (coinsToAdd ?? 0)).clamp(0, 999999);
     final newStars = current.totalStars + (starsToAdd ?? 0);
     final newCompleted = current.levelsCompletedCount + (levelsCompletedDelta ?? 0);
     final newLevel = XpService.calculateLevelFromXp(newXp);
-
-    final updated = current.copyWith(
+    final next = current.copyWith(
       username: username ?? current.username,
       avatarId: avatarId ?? current.avatarId,
       totalXp: newXp,
@@ -82,14 +121,22 @@ class ProfileRepositoryImpl implements ProfileRepository {
       currentStreak: currentStreak ?? current.currentStreak,
       bestStreak: bestStreak ?? current.bestStreak,
       lastDailyChallengeDate: lastDailyChallengeDate ?? current.lastDailyChallengeDate,
+      lastActiveAt: DateTime.now().toUtc(),
     );
+    await transaction.writeDocument(StorageKeys.playerProfileFile, next.toJson());
+    return next;
+  }
 
-    await saveProfile(updated);
+  @override
+  void invalidateCache() {
+    // Reads are always served from storage; retained for interface compatibility.
   }
 
   @override
   Future<void> resetProfile() async {
-    await _storage.removeDocument(StorageKeys.playerProfileFile);
-    _cachedProfile = null;
+    await _storage.runInTransaction(
+      (transaction) => transaction.removeDocument(StorageKeys.playerProfileFile),
+    );
+    invalidateCache();
   }
 }

@@ -2,50 +2,44 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mindverse/core/storage/local_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/test_storage.dart';
+
 void main() {
-  group('LocalStorageService Integrity Tests', () {
+  group('LocalStorageService transactional storage', () {
     late SharedPreferences prefs;
     late LocalStorageService storage;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       prefs = await SharedPreferences.getInstance();
-      storage = LocalStorageService(prefs);
+      storage = await createTestLocalStorage(prefs);
     });
 
-    test('writes and reads document with verified HMAC signature', () async {
+    tearDown(() async {
+      await storage.close();
+    });
+
+    test('writes and reads a document', () async {
       final doc = {'username': 'Tactician', 'xp': 250};
       await storage.writeDocument('test_profile.json', doc);
 
       final retrieved = await storage.readDocument('test_profile.json');
-      expect(retrieved, isNotNull);
-      expect(retrieved!['username'], 'Tactician');
-      expect(retrieved['xp'], 250);
+      expect(retrieved, doc);
     });
 
-    test('recovers from backup when primary document is modified/tampered', () async {
-      // Write initial state (becomes backup upon second write)
-      await storage.writeDocument('save.json', {'coins': 100});
-      // Write updated state
+    test('replacing a document stores the latest complete value', () async {
+      await storage.writeDocument('save.json', {'coins': 100, 'xp': 20});
       await storage.writeDocument('save.json', {'coins': 200});
 
-      // Tamper with primary save document (invalidating signature)
-      await prefs.setString('save.json', '{"coins": 999999}');
-
-      // Read should detect mismatch and recover backup (coins: 100)
-      final recovered = await storage.readDocument('save.json');
-      expect(recovered, isNotNull);
-      expect(recovered!['coins'], 100);
+      expect(await storage.readDocument('save.json'), {'coins': 200});
     });
 
-    test('removeDocument deletes primary, backup, and signature keys', () async {
+    test('removeDocument deletes a stored document', () async {
       await storage.writeDocument('temp.json', {'status': 'active'});
-      expect(prefs.containsKey('temp.json'), isTrue);
-      expect(prefs.containsKey('temp.json_sig'), isTrue);
+      expect(await storage.readDocument('temp.json'), isNotNull);
 
       await storage.removeDocument('temp.json');
-      expect(prefs.containsKey('temp.json'), isFalse);
-      expect(prefs.containsKey('temp.json_sig'), isFalse);
+      expect(await storage.readDocument('temp.json'), isNull);
     });
   });
 }

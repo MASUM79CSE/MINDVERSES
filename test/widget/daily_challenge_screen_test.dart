@@ -22,7 +22,7 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         dailyChallengeStatusProvider.overrideWith((ref, date) async =>
-            const DailyChallengeStatus(isCompleted: false, currentStreak: 2)),
+            const DailyChallengeStatus(isCompleted: false, clockRollbackDetected: false, currentStreak: 2, nextStreak: 3, bestStreak: 2)),
       ],
       child: MaterialApp.router(routerConfig: router),
     ));
@@ -30,7 +30,7 @@ void main() {
     expect(find.text('2 Days'), findsOneWidget);
     await tester.tap(find.text('Begin Challenge'));
     await tester.pumpAndSettle();
-    final expected = DailyChallengeService.generateTodayChallenge();
+    final expected = DailyChallengeService.generateChallengeForDate(DateTime.now());
     expect(launched?.gameId, expected.gameId);
     expect(launched?.levelNumber, expected.levelNumber);
     expect(launched?.dateString, expected.dateString);
@@ -38,8 +38,8 @@ void main() {
 
   testWidgets('completed and clock-rollback challenges cannot be launched', (tester) async {
     for (final status in [
-      const DailyChallengeStatus(isCompleted: true, currentStreak: 1),
-      const DailyChallengeStatus(isCompleted: false, currentStreak: 1, clockRollbackDetected: true),
+      const DailyChallengeStatus(isCompleted: true, clockRollbackDetected: false, currentStreak: 1, nextStreak: 1, bestStreak: 1),
+      const DailyChallengeStatus(isCompleted: false, currentStreak: 1, clockRollbackDetected: true, nextStreak: 1, bestStreak: 1),
     ]) {
       await tester.pumpWidget(ProviderScope(
         key: UniqueKey(),
