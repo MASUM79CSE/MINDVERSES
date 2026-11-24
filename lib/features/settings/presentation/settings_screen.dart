@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../app/config/app_constants.dart';
+import '../../../app/router/route_paths.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_typography.dart';
 import '../../../core/storage/storage_keys.dart';
@@ -205,17 +207,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Text('ABOUT MINDVERSE', style: AppTypography.labelSmall),
             const SizedBox(height: 10),
             AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              onTap: () => context.push(RoutePaths.about),
+              child: Row(
                 children: [
-                  Text(AppConstants.appName, style: AppTypography.titleMedium),
-                  const SizedBox(height: 4),
-                  Text('Version ${AppConstants.appVersion}', style: AppTypography.bodyMedium),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Built with Flutter Clean Architecture.\nBrain Score is an internal game-performance metric only.',
-                    style: AppTypography.bodyMedium,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(AppConstants.appName, style: AppTypography.titleMedium),
+                        const SizedBox(height: 4),
+                        Text('Version ${AppConstants.appVersion}', style: AppTypography.bodyMedium),
+                        const SizedBox(height: 4),
+                        Text('Tap to view developer profile & details', style: AppTypography.bodySmall.copyWith(color: AppColors.primary)),
+                      ],
+                    ),
                   ),
+                  Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.textMuted),
                 ],
               ),
             ),

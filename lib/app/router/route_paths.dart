@@ -12,6 +12,7 @@ class RoutePaths {
   static const String settings = '/settings';
   static const String achievements = '/achievements';
   static const String dailyChallenge = '/daily-challenge';
+  static const String about = '/about';
   static const String cubeLogic = '/cube-logic/:levelId';
   static const String bridgeMaster = '/bridge-master/:levelId';
   static const String mazeArchitect = '/maze-architect/:levelId';

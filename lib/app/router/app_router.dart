@@ -22,6 +22,7 @@ import '../../features/game_selection/presentation/level_select_screen.dart';
 import '../../features/home/presentation/hub_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/settings/presentation/about_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../shared/models/daily_challenge.dart';
@@ -134,6 +135,14 @@ class AppRouter {
           context: context,
           state: state,
           child: const DailyChallengeScreen(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.about,
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: const AboutScreen(),
         ),
       ),
       GoRoute(
