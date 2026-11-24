@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../app/config/app_constants.dart';
-import '../../../app/router/route_paths.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_typography.dart';
 import '../../../core/storage/storage_keys.dart';
+import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_dialog.dart';
+import '../../../core/widgets/glass_container.dart';
 import '../../../shared/providers/shared_providers.dart';
 
-/// Settings screen for audio, haptics, theme mode, and privacy controls.
+/// Settings screen for audio, haptics, theme mode, and privacy controls, embedding the full Developer Profile & About section.
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -48,6 +49,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       cancelLabel: 'Close',
       icon: Icons.security_rounded,
       iconColor: AppColors.energyActive,
+    );
+  }
+
+  Future<void> _copyToClipboard(String label, String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$label copied to clipboard!'),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _openUrl(String urlString) async {
+    await Clipboard.setData(ClipboardData(text: urlString));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Opening link: $urlString'),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -102,7 +127,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('SETTINGS'),
+        title: const Text('SETTINGS & ABOUT'),
       ),
       body: SafeArea(
         child: ListView(
@@ -203,27 +228,161 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 24),
 
-            // About Section
-            Text('ABOUT MINDVERSE', style: AppTypography.labelSmall),
+            // ─── ABOUT MINDVERSE & DEVELOPER PROFILE SECTION ───
+            Text('ABOUT MINDVERSE & DEVELOPER', style: AppTypography.labelSmall),
             const SizedBox(height: 10),
+
+            // App Identity Header Card
+            GlassContainer(
+              borderRadius: 24,
+              blur: 20,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0A84FF), Color(0xFF0056B3)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.psychology_rounded, size: 28, color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(AppConstants.appName, style: AppTypography.titleLarge),
+                            const SizedBox(height: 2),
+                            Text('Version ${AppConstants.appVersion}', style: AppTypography.labelSmall.copyWith(color: AppColors.primary)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Think. Solve. Explore. A unified cognitive strategy and brain puzzle game collection with local-first offline resilience.',
+                    style: AppTypography.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Developer Profile Card
             AppCard(
-              onTap: () => context.push(RoutePaths.about),
               child: Row(
                 children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceElevated,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primary, width: 2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'MM',
+                        style: AppTypography.titleLarge.copyWith(color: AppColors.primary, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(AppConstants.appName, style: AppTypography.titleMedium),
+                        Text('Mir Md. Masum', style: AppTypography.titleMedium),
+                        const SizedBox(height: 2),
+                        Text('Lead Developer & Architect', style: AppTypography.labelSmall.copyWith(color: AppColors.primary)),
                         const SizedBox(height: 4),
-                        Text('Version ${AppConstants.appVersion}', style: AppTypography.bodyMedium),
-                        const SizedBox(height: 4),
-                        Text('Tap to view developer profile & details', style: AppTypography.bodySmall.copyWith(color: AppColors.primary)),
+                        Text(
+                          'Passionate cross-platform software engineer & UI/UX architect.',
+                          style: AppTypography.bodySmall,
+                        ),
                       ],
                     ),
                   ),
-                  Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.textMuted),
                 ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Contact & Socials Card
+            AppCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.email_rounded, color: AppColors.primary),
+                    title: Text('Email', style: AppTypography.titleMedium),
+                    subtitle: Text('mirmasum@mail.com', style: AppTypography.bodyMedium),
+                    trailing: AppButton(
+                      label: 'Copy',
+                      height: 36,
+                      variant: AppButtonVariant.outline,
+                      onPressed: () => _copyToClipboard('Email', 'mirmasum@mail.com'),
+                    ),
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFFE1306C)),
+                    title: Text('Instagram', style: AppTypography.titleMedium),
+                    subtitle: Text('@mirmd_masum', style: AppTypography.bodyMedium),
+                    trailing: AppButton(
+                      label: 'Open',
+                      height: 36,
+                      variant: AppButtonVariant.outline,
+                      onPressed: () => _openUrl('https://www.instagram.com/mirmd_masum/'),
+                    ),
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.chat_bubble_rounded, color: Color(0xFF5865F2)),
+                    title: Text('Discord', style: AppTypography.titleMedium),
+                    subtitle: Text('mir_masum', style: AppTypography.bodyMedium),
+                    trailing: AppButton(
+                      label: 'Copy',
+                      height: 36,
+                      variant: AppButtonVariant.outline,
+                      onPressed: () => _copyToClipboard('Discord handle', 'mir_masum'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Footer Credit
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  children: [
+                    Text(
+                      'Designed & Developed by Mir Md. Masum',
+                      style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '© 2026 MINDVERSE. All rights reserved.',
+                      style: AppTypography.bodySmall,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),
